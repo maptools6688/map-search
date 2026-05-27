@@ -1,0 +1,1304 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MAP 文献推荐 — Maximum Academic Press</title>
+<style>
+:root {
+  --primary: #1a5276;
+  --primary-light: #2980b9;
+  --accent: #e67e22;
+  --bg: #f4f6f9;
+  --card: #ffffff;
+  --text: #1c2b3a;
+  --text-light: #6b7a8d;
+  --border: #dde3ea;
+  --shadow: 0 2px 16px rgba(26,82,118,0.08);
+  --radius: 14px;
+  --green: #1a8a4a;
+  --green-bg: #eafaf1;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+/* ── Header ── */
+.header {
+  background: linear-gradient(135deg, #0f2a3a 0%, #1a5276 60%, #1a3a4a 100%);
+  color: #fff;
+  padding: 36px 24px 30px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.header::before {
+  content: '';
+  position: absolute;
+  top: -60px; right: -60px;
+  width: 220px; height: 220px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 50%;
+}
+.header::after {
+  content: '';
+  position: absolute;
+  bottom: -40px; left: -40px;
+  width: 160px; height: 160px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 50%;
+}
+.header-logo {
+  max-width: 180px;
+  height: auto;
+  margin-bottom: 16px;
+  filter: brightness(0) invert(1);
+  opacity: 0.92;
+}
+.header h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.3px; }
+.header p { font-size: 14px; opacity: 0.78; max-width: 560px; margin: 0 auto; line-height: 1.6; }
+
+/* ── Config Banner (API key setup) ── */
+.config-banner {
+  background: #fff8ec;
+  border-bottom: 2px solid #f39c12;
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: #7d5a00;
+}
+.config-banner.hidden { display: none; }
+.config-banner strong { color: #b7650c; }
+.config-btn {
+  margin-left: auto;
+  padding: 6px 16px;
+  background: #e67e22;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.config-btn:hover { background: #cf6d17; }
+
+/* ── Config Modal ── */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.modal-overlay.hidden { display: none; }
+.modal {
+  background: #fff;
+  border-radius: 16px;
+  padding: 32px;
+  max-width: 520px;
+  width: 100%;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+}
+.modal h2 { font-size: 20px; margin-bottom: 8px; color: var(--primary); }
+.modal p { font-size: 13px; color: var(--text-light); line-height: 1.7; margin-bottom: 20px; }
+.modal label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+.modal input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  margin-bottom: 16px;
+  font-family: monospace;
+}
+.modal input:focus { outline: none; border-color: var(--primary-light); }
+.modal-btns { display: flex; gap: 10px; justify-content: flex-end; }
+.btn-save {
+  padding: 10px 24px;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-save:hover { background: var(--primary-light); }
+.btn-cancel {
+  padding: 10px 20px;
+  background: #f5f5f5;
+  color: #555;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.modal .step-list { margin: 12px 0 20px; padding-left: 18px; }
+.modal .step-list li { font-size: 13px; color: #444; line-height: 1.8; }
+.modal .step-list a { color: var(--primary-light); }
+
+/* ── Main ── */
+.main {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 28px 20px 60px;
+}
+
+/* ── Mode Tabs ── */
+.mode-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 24px;
+  background: #fff;
+  border-radius: 12px;
+  padding: 5px;
+  box-shadow: var(--shadow);
+}
+.mode-tab {
+  flex: 1;
+  padding: 11px 16px;
+  border: none;
+  background: transparent;
+  border-radius: 9px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-light);
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.mode-tab.active {
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(26,82,118,0.22);
+}
+.mode-tab:hover:not(.active) { background: #f0f4f8; color: var(--primary); }
+
+/* ── Panel ── */
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* ── Card ── */
+.card {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 28px;
+  margin-bottom: 20px;
+}
+.card-label {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.card-label .icon { font-size: 18px; }
+
+/* ── Textarea ── */
+.para-textarea {
+  width: 100%;
+  min-height: 140px;
+  padding: 14px 16px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text);
+  resize: vertical;
+  font-family: inherit;
+  transition: border-color 0.2s;
+}
+.para-textarea:focus { outline: none; border-color: var(--primary-light); }
+.para-textarea::placeholder { color: #b0bec5; }
+
+/* ── Submit Row ── */
+.submit-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 14px;
+  gap: 12px;
+}
+.hint-text { font-size: 12px; color: var(--text-light); }
+.btn-primary {
+  padding: 11px 30px;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 9px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.btn-primary:hover:not(:disabled) { background: var(--primary-light); transform: translateY(-1px); box-shadow: 0 4px 14px rgba(41,128,185,0.25); }
+.btn-primary:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+
+/* ── Loading ── */
+.loading-dots span {
+  display: inline-block;
+  width: 7px; height: 7px;
+  background: #fff;
+  border-radius: 50%;
+  margin: 0 2px;
+  animation: bounce 1.2s infinite ease-in-out;
+}
+.loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+.loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes bounce { 0%, 80%, 100% { transform: scale(0.6); opacity: 0.5; } 40% { transform: scale(1); opacity: 1; } }
+
+/* ── Results Section ── */
+.results-section { margin-top: 4px; }
+
+/* ── AI Suggestion Card ── */
+.ai-card {
+  background: linear-gradient(135deg, #f0f7ff 0%, #e8f4fd 100%);
+  border: 1.5px solid #b3d4f0;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 16px;
+}
+.ai-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.ai-label {
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--primary);
+  color: #fff;
+  padding: 3px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.5px;
+}
+.copy-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 14px;
+  background: #fff;
+  border: 1.5px solid var(--primary-light);
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary-light);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.copy-btn:hover { background: var(--primary-light); color: #fff; }
+.copy-btn.copied { background: var(--green); border-color: var(--green); color: #fff; }
+.ai-sentence {
+  font-size: 14.5px;
+  line-height: 1.85;
+  color: #1c3a5a;
+  font-weight: 500;
+  margin-bottom: 14px;
+}
+.ai-sentence a.ref-link {
+  color: var(--primary-light);
+  font-weight: 700;
+  text-decoration: none;
+  border-bottom: 1.5px solid rgba(41,128,185,0.3);
+  transition: border-color 0.15s;
+}
+.ai-sentence a.ref-link:hover { border-color: var(--primary-light); }
+.ai-reason {
+  font-size: 12.5px;
+  color: #5a7a9a;
+  background: rgba(255,255,255,0.7);
+  border-radius: 7px;
+  padding: 9px 12px;
+  line-height: 1.7;
+  border-left: 3px solid var(--primary-light);
+}
+.ai-reason strong { color: var(--primary); }
+
+/* ── Article List ── */
+.articles-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.articles-title { font-size: 15px; font-weight: 700; color: var(--text); }
+.articles-count { font-size: 13px; color: var(--text-light); }
+.article-item {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-bottom: 8px;
+  transition: all 0.18s;
+  cursor: default;
+}
+.article-item:hover { border-color: var(--primary-light); box-shadow: 0 3px 12px rgba(41,128,185,0.1); transform: translateY(-1px); }
+.art-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--primary);
+  line-height: 1.5;
+  margin-bottom: 6px;
+}
+.art-title a { color: inherit; text-decoration: none; }
+.art-title a:hover { color: var(--primary-light); text-decoration: underline; }
+.art-meta {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  align-items: center;
+  font-size: 12px;
+  color: var(--text-light);
+}
+.art-journal { color: var(--primary-light); font-weight: 600; text-decoration: none; }
+.art-journal:hover { text-decoration: underline; }
+.art-tag {
+  padding: 1px 9px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 700;
+}
+.tag-ARTICLE { background: #d4efdf; color: #1e8449; }
+.tag-REVIEW { background: #d6eaf8; color: #2471a3; }
+.tag-PERSPECTIVE { background: #fdebd0; color: #b9770e; }
+.tag-EDITORIAL { background: #e8daef; color: #7d3c98; }
+.tag-LETTER { background: #fdfefe; color: #707b7c; border: 1px solid #ccc; }
+.tag-SHORT { background: #eafaf1; color: #1a8a4a; }
+.art-doi { font-size: 10.5px; color: #aab; margin-left: auto; }
+
+/* ── Search Panel ── */
+.search-row {
+  display: flex;
+  align-items: center;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+  transition: border-color 0.2s;
+}
+.search-row:focus-within { border-color: var(--primary-light); box-shadow: 0 0 0 3px rgba(41,128,185,0.1); }
+.search-input {
+  flex: 1;
+  padding: 13px 16px;
+  border: none;
+  font-size: 15px;
+  font-family: inherit;
+  background: transparent;
+  color: var(--text);
+  min-width: 0;
+}
+.search-input:focus { outline: none; }
+.search-input::placeholder { color: #b0bec5; }
+.search-divider { width: 1px; height: 24px; background: var(--border); flex-shrink: 0; }
+
+/* Journal Select */
+.journal-trigger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 16px;
+  height: 46px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-light);
+  background: transparent;
+  border: none;
+  font-family: inherit;
+  white-space: nowrap;
+  user-select: none;
+  flex-shrink: 0;
+}
+.journal-trigger .arrow { font-size: 10px; transition: transform 0.2s; }
+.journal-select-wrap { position: relative; }
+.journal-select-wrap.open .arrow { transform: rotate(180deg); }
+.journal-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: #fff;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.14);
+  min-width: 220px;
+  max-height: 320px;
+  overflow-y: auto;
+  z-index: 100;
+}
+.journal-select-wrap.open .journal-dropdown { display: block; }
+.journal-opt {
+  padding: 9px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--text);
+  transition: background 0.12s;
+}
+.journal-opt:hover { background: #f0f5fb; }
+.journal-opt.selected { color: var(--primary); font-weight: 700; background: #eaf3fb; }
+
+.search-btn {
+  padding: 0 20px;
+  height: 46px;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.18s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.search-btn:hover:not(:disabled) { background: var(--primary-light); }
+.search-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* ── Status Messages ── */
+.status-msg {
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-bottom: 14px;
+}
+.status-ok { background: var(--green-bg); color: var(--green); }
+.status-warn { background: #fff8ec; color: #8a6000; }
+.status-error { background: #fdedec; color: #922b21; }
+
+/* ── No Results ── */
+.no-result {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--text-light);
+}
+.no-result .nr-icon { font-size: 40px; margin-bottom: 12px; }
+.no-result h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; color: var(--text); }
+.no-result p { font-size: 13px; line-height: 1.7; max-width: 440px; margin: 0 auto 20px; }
+.no-result a.full-search-btn {
+  display: inline-block;
+  padding: 11px 28px;
+  background: var(--accent);
+  color: #fff;
+  text-decoration: none;
+  border-radius: 9px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* ── Citation Hint ── */
+.citation-hint {
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-light);
+  padding: 14px;
+  border-top: 1px solid var(--border);
+  margin-top: 8px;
+}
+
+/* ── API Key Status Chip ── */
+.api-key-chip {
+  position: fixed;
+  top: 16px;
+  right: 20px;
+  font-size: 11px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-weight: 700;
+  z-index: 200;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+}
+.api-key-chip.set { background: var(--green-bg); color: var(--green); border: 1.5px solid #a9dfbf; }
+.api-key-chip.unset { background: #fff8ec; color: #b7650c; border: 1.5px solid #f0c060; }
+
+/* ── Spinner ── */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; }
+
+/* ── Footer ── */
+.footer {
+  background: #1a2e40;
+  color: rgba(255,255,255,0.5);
+  text-align: center;
+  font-size: 12px;
+  padding: 20px;
+  line-height: 1.8;
+}
+.footer a { color: rgba(255,255,255,0.65); text-decoration: none; }
+.footer a:hover { color: #fff; }
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .mode-tab { font-size: 13px; padding: 10px 10px; }
+  .submit-row { flex-direction: column; align-items: stretch; }
+  .btn-primary { justify-content: center; }
+}
+</style>
+</head>
+<body>
+
+<!-- API Key Config Chip (top right) -->
+<div id="apiKeyChip" class="api-key-chip unset" onclick="openModal()">⚙️ 配置 API Key</div>
+
+<!-- Header -->
+<header class="header">
+  <img src="MAP_logo.png" class="header-logo" alt="MAP" onerror="this.style.display='none'">
+  <h1>MAP 文献推荐</h1>
+  <p>粘贴您的段落，智能推荐 MAP 期刊文章，并生成可直接引用的学术句子</p>
+</header>
+
+<!-- Config Banner -->
+<div class="config-banner" id="configBanner">
+  <span>⚠️ 未配置 DeepSeek API Key，<strong>段落引用功能</strong>暂不可用。</span>
+  <button class="config-btn" onclick="openModal()">立即配置</button>
+</div>
+
+<!-- Config Modal -->
+<div class="modal-overlay hidden" id="modalOverlay">
+  <div class="modal">
+    <h2>⚙️ 配置 DeepSeek API Key</h2>
+    <p>API Key 仅保存在您的浏览器本地（localStorage），不会上传到任何服务器。</p>
+    <ol class="step-list">
+      <li>访问 <a href="https://platform.deepseek.com/api_keys" target="_blank">platform.deepseek.com/api_keys</a></li>
+      <li>注册并创建一个 API Key</li>
+      <li>复制粘贴到下方输入框</li>
+    </ol>
+    <label>DeepSeek API Key</label>
+    <input type="password" id="apiKeyInput" placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+    <label>MAP API 代理地址（Cloudflare Worker）</label>
+    <input type="text" id="proxyInput" placeholder="https://map-proxy.xxx.workers.dev">
+    <p style="font-size:12px;color:#999;margin-top:-10px;margin-bottom:16px;">
+      请先按照说明部署 Cloudflare Worker，部署后将地址填入此处。
+    </p>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">取消</button>
+      <button class="btn-save" onclick="saveConfig()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Main Content -->
+<main class="main">
+
+  <!-- Mode Tabs -->
+  <div class="mode-tabs">
+    <button class="mode-tab active" id="tab-cite" onclick="switchTab('cite')">
+      <span>✍️</span> 段落引用推荐
+    </button>
+    <button class="mode-tab" id="tab-search" onclick="switchTab('search')">
+      <span>🔍</span> 关键词搜索
+    </button>
+  </div>
+
+  <!-- Panel A: Paragraph Citation -->
+  <div class="panel active" id="panel-cite">
+    <div class="card">
+      <div class="card-label"><span class="icon">📄</span>粘贴您正在撰写的段落</div>
+      <textarea class="para-textarea" id="paraInput"
+        placeholder="将您论文中的一段话粘贴于此，系统将智能匹配相关 MAP 文章，并为您生成可直接引用的学术句子（含引用原因）……"></textarea>
+      <div class="submit-row">
+        <span class="hint-text">支持中英文段落 · 匹配近两年 MAP 期刊文章</span>
+        <button class="btn-primary" id="citeBtn" onclick="doCiteSearch()">
+          <span id="citeBtnContent">智能推荐引用</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="results-section" id="citeResults" style="display:none;">
+      <!-- AI-generated sentences here -->
+    </div>
+  </div>
+
+  <!-- Panel B: Keyword Search -->
+  <div class="panel" id="panel-search">
+    <div class="card">
+      <div class="card-label"><span class="icon">🔍</span>关键词检索</div>
+      <div style="position:relative;">
+        <div class="search-row">
+          <input type="text" class="search-input" id="searchInput"
+            placeholder="输入关键词（中英文均可）：银杏、salt stress、drought tolerance…"
+            onkeydown="if(event.key==='Enter')doKeywordSearch()">
+          <div class="search-divider"></div>
+          <div class="journal-select-wrap" id="journalWrap">
+            <button class="journal-trigger" onclick="toggleJournalDrop(event)">
+              <span id="journalText">全部期刊</span>
+              <span class="arrow">▼</span>
+            </button>
+            <div class="journal-dropdown" id="journalDropdown"></div>
+          </div>
+          <button class="search-btn" id="searchBtn" onclick="doKeywordSearch()">
+            <span id="searchBtnContent">检索</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="searchResults" style="display:none;">
+      <!-- Article list here -->
+    </div>
+  </div>
+
+</main>
+
+<footer class="footer">
+  &copy; 2021–2026 <a href="https://www.maxapress.com" target="_blank">Maximum Academic Press</a>.
+  MAP is a member of ALPSP, COPE, CrossRef, cOAlition S, OASPA, and STM.
+  <br>数据实时来源 MAP 官方 API · 由 MAP 宣传部维护
+</footer>
+
+<script>
+// ============================================================
+// CONFIG — Cloudflare Worker Proxy URL
+// 部署 Cloudflare Worker 后，将地址填入下方 (或用户通过设置弹窗配置)
+// ============================================================
+const DEFAULT_PROXY = '';  // e.g. 'https://map-proxy.yourname.workers.dev'
+const DEEPSEEK_API  = 'https://api.deepseek.com/v1/chat/completions';
+
+// ── Load config ──
+let CFG = {
+  apiKey:   localStorage.getItem('map_deepseek_key') || '',
+  proxyUrl: localStorage.getItem('map_proxy_url') || DEFAULT_PROXY,
+};
+
+function saveConfig() {
+  const k = document.getElementById('apiKeyInput').value.trim();
+  const p = document.getElementById('proxyInput').value.trim().replace(/\/$/, '');
+  if (!k) { alert('请输入 API Key'); return; }
+  if (!p) { alert('请输入代理地址'); return; }
+  CFG.apiKey = k;
+  CFG.proxyUrl = p;
+  localStorage.setItem('map_deepseek_key', k);
+  localStorage.setItem('map_proxy_url', p);
+  closeModal();
+  updateConfigUI();
+}
+function openModal() {
+  document.getElementById('apiKeyInput').value = CFG.apiKey;
+  document.getElementById('proxyInput').value = CFG.proxyUrl;
+  document.getElementById('modalOverlay').classList.remove('hidden');
+}
+function closeModal() {
+  document.getElementById('modalOverlay').classList.add('hidden');
+}
+function updateConfigUI() {
+  const hasKey = !!CFG.apiKey && !!CFG.proxyUrl;
+  document.getElementById('configBanner').classList.toggle('hidden', hasKey);
+  const chip = document.getElementById('apiKeyChip');
+  if (hasKey) {
+    chip.className = 'api-key-chip set';
+    chip.textContent = '✓ API 已配置';
+  } else {
+    chip.className = 'api-key-chip unset';
+    chip.textContent = '⚙️ 配置 API Key';
+  }
+}
+updateConfigUI();
+
+// ── Tab switch ──
+function switchTab(tab) {
+  ['cite','search'].forEach(t => {
+    document.getElementById('tab-' + t).classList.toggle('active', t === tab);
+    document.getElementById('panel-' + t).classList.toggle('active', t === tab);
+  });
+}
+
+// ── Close dropdown on outside click ──
+document.addEventListener('click', e => {
+  const w = document.getElementById('journalWrap');
+  if (w && !w.contains(e.target)) w.classList.remove('open');
+  if (document.getElementById('modalOverlay') === e.target) closeModal();
+});
+
+// ============================================================
+// MAP Journal Database
+// ============================================================
+const MAP_JOURNALS = [
+  { id:"seedbio",   name:"Seed Biology",                   nameCN:"种子生物学",      keywords:["seed","germination","dormancy","embryo","endosperm","pollen","flowering","arabidopsis","种子","萌发","休眠","胚","花粉","开花","拟南芥","vigor","priming","stress","salt","drought","tolerance"] },
+  { id:"newcontam", name:"New Contaminants",                nameCN:"新污染物",        keywords:["contaminant","pollutant","microplastic","pfas","emerging","toxic","environment","water","health","risk","pollution","污染物","微塑料","环境","健康","风险","降解","监测"] },
+  { id:"tp",        name:"Tropical Plants",                 nameCN:"热带植物",        keywords:["tropical","cassava","banana","mango","coconut","rubber","palm","sugarcane","热带","木薯","香蕉","芒果","橡胶","甘蔗","stress","drought","salt","tolerance"] },
+  { id:"forres",    name:"Forestry Research",               nameCN:"林学研究",        keywords:["forest","tree","wood","poplar","pine","bamboo","eucalyptus","oak","ginkgo","timber","silviculture","biomass","森林","林业","树木","木材","杨树","松树","竹子","桉树","银杏","生物量","drought","stress","salt","cold","heat"] },
+  { id:"vegres",    name:"Vegetable Research",              nameCN:"蔬菜研究",        keywords:["vegetable","tomato","cucumber","pepper","lettuce","cabbage","potato","onion","melon","carrot","spinach","eggplant","蔬菜","番茄","黄瓜","辣椒","马铃薯","salt","drought","stress","tolerance"] },
+  { id:"opr",       name:"Ornamental Plant Research",       nameCN:"观赏植物研究",    keywords:["ornamental","flower","rose","chrysanthemum","lily","orchid","peony","tulip","pigment","fragrance","landscape","观赏","花卉","玫瑰","菊花","百合","牡丹","花色","花香","园林","stress","drought"] },
+  { id:"grares",    name:"Grass Research",                  nameCN:"草学研究",        keywords:["grass","forage","turf","lawn","alfalfa","ryegrass","fescue","bermuda","grassland","meadow","grazing","牧草","草坪","苜蓿","草原","salt","drought","stress","cold"] },
+  { id:"frures",    name:"Fruit Research",                  nameCN:"果树研究",        keywords:["fruit","apple","grape","citrus","peach","pear","cherry","blueberry","strawberry","kiwifruit","ginkgo","orchard","postharvest","果实","苹果","葡萄","柑橘","桃","樱桃","蓝莓","采后","drought","stress"] },
+  { id:"bpr",       name:"Beverage Plant Research",         nameCN:"饮料植物研究",    keywords:["tea","coffee","cocoa","caffeine","camellia","polyphenol","catechins","flavor","beverage","茶","咖啡","可可","多酚","儿茶素","风味","饮料","stress","drought"] },
+  { id:"cas",       name:"Circular Agricultural Systems",   nameCN:"循环农业系统",    keywords:["circular","agriculture","sustainable","waste","nutrient","recycling","soil","organic","manure","crop","循环","农业","可持续","废弃物","养分","土壤","有机"] },
+  { id:"fia",       name:"Food Innovation and Advances",    nameCN:"食品创新与进展",  keywords:["food","innovation","processing","safety","nutrition","quality","preservation","packaging","functional","fermented","食品","创新","加工","安全","营养","品质","保鲜","发酵","ginkgo","银杏"] },
+  { id:"fmr",       name:"Food Materials Research",         nameCN:"食品材料研究",    keywords:["food","material","protein","starch","lipid","polysaccharide","packaging","edible","emulsion","gel","食品","材料","蛋白","淀粉","脂质","多糖","凝胶"] },
+  { id:"sif",       name:"Studies in Fungi",                nameCN:"真菌研究",        keywords:["fungi","fungus","mushroom","yeast","taxonomy","mycology","mycorrhiza","pathogen","mold","lichen","真菌","蘑菇","酵母","菌根","病原","stress","drought","salt"] },
+  { id:"mpb",       name:"Medicinal Plant Biology",         nameCN:"药用植物生物学",  keywords:["medicinal","herb","herbal","secondary","metabolism","alkaloid","terpenoid","flavonoid","ginseng","compound","药用","草药","次生","代谢","生物碱","黄酮","人参","stress","drought"] },
+  { id:"tihort",    name:"Technology in Horticulture",      nameCN:"园艺技术",        keywords:["horticulture","greenhouse","cultivation","irrigation","hydroponic","vertical","smart","automation","园艺","温室","栽培","灌溉","水培","智慧","自动化","drought","stress"] },
+  { id:"tia",       name:"Technology in Agronomy",          nameCN:"农艺技术",        keywords:["agronomy","precision","agriculture","crop","yield","fertilizer","irrigation","smart","drone","农学","精准","农业","作物","产量","肥料","灌溉","无人机","drought","stress"] },
+  { id:"sse",       name:"Soil Science and Environment",    nameCN:"土壤科学与环境",  keywords:["soil","science","environment","chemistry","physics","microbiology","pollution","remediation","organic","carbon","nitrogen","土壤","科学","环境","化学","微生物","污染","有机","碳","氮"] },
+  { id:"ph",        name:"Plant Hormones",                  nameCN:"植物激素",        keywords:["hormone","auxin","cytokinin","gibberellin","abscisic","ethylene","brassinosteroid","jasmonic","salicylic","激素","生长素","脱落酸","乙烯","茉莉酸","水杨酸","stress","drought","salt"] },
+  { id:"fra",       name:"Forestry Research Advances",      nameCN:"林业研究进展",    keywords:["forest","forestry","management","ecology","conservation","ecosystem","service","森林","林业","经营","生态","保护","服务","stress","drought","salt","cold"] },
+  { id:"smartfor",  name:"Smart Forestry",                  nameCN:"智慧林业",        keywords:["smart","forestry","remote","sensing","monitoring","big","data","ai","uav","lidar","智慧","林业","遥感","监测","大数据","无人机","激光雷达","stress","drought"] },
+  { id:"nc",        name:"Nitrogen Cycling",                nameCN:"氮循环",          keywords:["nitrogen","cycling","fixation","nitrification","denitrification","ammonia","nitrate","fertilizer","emission","microorganism","氮","循环","固氮","硝化","硝酸盐","肥料","微生物"] },
+  { id:"aee",       name:"Agricultural Ecology and Environment", nameCN:"农业生态与环境", keywords:["agricultural","ecology","environment","ecosystem","pollution","carbon","nitrogen","farmland","农业","生态","环境","污染","碳","氮","农田"] },
+  { id:"abd",       name:"Agrobiodiversity",                nameCN:"农业生物多样性",  keywords:["agrobiodiversity","germplasm","genetic","diversity","conservation","crop","wild","农业生物多样性","种质","遗传","多样性","保护","作物","野生"] },
+  { id:"gcomm",     name:"Genomics Communications",         nameCN:"基因组学通讯",    keywords:["genomics","sequencing","genome","functional","comparative","bioinformatics","ngs","transcriptome","基因组","测序","功能","比较","生物信息","转录组"] },
+  { id:"epi",       name:"Epigenetics Insights",            nameCN:"表观遗传学洞察",  keywords:["epigenetics","methylation","histone","modification","chromatin","non-coding","rna","dna","表观遗传","甲基化","组蛋白","染色质","非编码"] },
+  { id:"prkm",      name:"Progress in Reaction Kinetics",   nameCN:"反应动力学进展",  keywords:["reaction","kinetics","mechanism","catalysis","theoretical","computational","rate","molecular","反应","动力学","机理","催化","理论","计算","分子"] },
+  { id:"animadv",   name:"Animal Advances",                 nameCN:"动物进展",        keywords:["animal","livestock","breeding","nutrition","health","welfare","genetics","reproduction","动物","家畜","育种","营养","健康","福利","遗传","繁殖"] },
+  { id:"jai",       name:"Journal of Applied Ichthyology",  nameCN:"应用鱼类学",      keywords:["fish","ichthyology","fishery","aquaculture","biology","conservation","marine","freshwater","鱼","渔业","水产养殖","保护","海洋","淡水"] },
+  { id:"els",       name:"Engineering in Life Sciences",    nameCN:"生命科学工程",    keywords:["engineering","life","science","bioprocess","bioreactor","synthetic","biology","fermentation","biotech","生命","科学","生物过程","合成","发酵","生物技术"] },
+  { id:"pubres",    name:"Publishing Research",             nameCN:"出版研究",        keywords:["publishing","research","academic","open","science","journal","peer","review","ethics","impact","出版","学术","开放","期刊","同行评审","伦理"] },
+];
+
+// ============================================================
+// Chinese-to-English Map
+// ============================================================
+const CN_EN = {
+  "盐胁迫":["salt stress","salinity stress","salt tolerance"],
+  "盐":["salt","salinity","saline","nacl"],
+  "胁迫":["stress"],
+  "干旱":["drought","water deficit","water stress"],
+  "抗逆":["stress tolerance","stress resistance","stress response"],
+  "耐盐":["salt tolerance","salt resistance","halophyte"],
+  "逆境":["stress","abiotic stress","biotic stress"],
+  "盐碱":["saline-alkali","alkaline"],
+  "重金属":["heavy metal","cadmium","lead","arsenic"],
+  "低温":["cold","chilling","freezing","cold stress"],
+  "高温":["heat","high temperature","heat stress"],
+  "抗病":["disease resistance","pathogen","defense"],
+  "抗氧化":["antioxidant","oxidative stress","ros"],
+  "激素":["hormone","abscisic acid","jasmonic","salicylic","auxin"],
+  "转录因子":["transcription factor","myb","nac","wrky","bzip"],
+  "基因表达":["gene expression","rna-seq","transcriptomic"],
+  "代谢":["metabolism","metabolite","biosynthesis"],
+  "光合":["photosynthesis","photosynthetic","chlorophyll"],
+  "根系":["root","rhizosphere"],
+  "产量":["yield","productivity","biomass","grain yield"],
+  "品质":["quality","nutritional","flavor","aroma"],
+  "衰老":["senescence","aging"],
+  "自噬":["autophagy"],
+  "泛素":["ubiquitin","proteasome"],
+  "甲基化":["methylation","epigenetic"],
+  "编辑":["crispr","genome editing"],
+  "突变":["mutation","mutant"],
+  "转基因":["transgenic","transformation"],
+  "信号":["signaling","signal transduction","pathway"],
+  "蛋白":["protein","proteome"],
+  "互作":["interaction","protein-protein"],
+  "调控":["regulation","regulatory","regulate"],
+  "机制":["mechanism","molecular mechanism"],
+  "途径":["pathway","biosynthetic pathway"],
+  "响应":["response","responsive"],
+  "萌发":["germination","seed germination"],
+  "开花":["flowering","floral","flower"],
+  "木质素":["lignin","lignification"],
+  "纤维素":["cellulose","cell wall"],
+  "黄酮":["flavonoid","flavone","anthocyanin"],
+  "生物碱":["alkaloid"],
+  "萜类":["terpenoid","terpene"],
+  "微生物":["microbial","microbiome","bacteria","fungi"],
+  "菌根":["mycorrhizal","mycorrhiza"],
+  "氮":["nitrogen","nitrate","ammonium"],
+  "磷":["phosphorus","phosphate"],
+  "土壤":["soil","edaphic"],
+  "修复":["remediation","phytoremediation"],
+  "银杏":["ginkgo","ginkgo biloba"],
+  "桉树":["eucalyptus"],
+  "竹子":["bamboo"],
+  "杨树":["poplar","populus"],
+  "松树":["pine","pinus"],
+  "猕猴桃":["kiwifruit","actinidia"],
+  "蓝莓":["blueberry","vaccinium"],
+  "草莓":["strawberry","fragaria"],
+  "柑橘":["citrus","orange"],
+  "番茄":["tomato","solanum lycopersicum"],
+  "黄瓜":["cucumber","cucumis sativus"],
+  "辣椒":["pepper","capsicum"],
+  "马铃薯":["potato","solanum tuberosum"],
+  "水稻":["rice","oryza sativa"],
+  "小麦":["wheat","triticum"],
+  "玉米":["maize","corn","zea mays"],
+  "大豆":["soybean","glycine max"],
+  "棉花":["cotton","gossypium"],
+  "茶叶":["tea","camellia sinensis"],
+  "拟南芥":["arabidopsis"],
+  "人参":["ginseng","panax"],
+  "黄酮类":["flavonoid","flavonoids"],
+  "花青素":["anthocyanin","anthocyanins"],
+  "精油":["essential oil","volatile oil"],
+  "采后":["postharvest","post-harvest"],
+};
+
+// ============================================================
+// Article Cache
+// ============================================================
+const CACHE = {};
+let currentJournal = 'all';
+let journalSelectLabel = '全部期刊';
+
+// Get default year range (last 2 years, dynamic)
+function getYearRange() {
+  const now = new Date().getFullYear();
+  return [now - 1, now];
+}
+
+// Fetch articles from MAP via proxy
+async function fetchArticles(publisherId) {
+  const key = publisherId;
+  const now = Date.now();
+  if (CACHE[key] && (now - CACHE[key].ts < 3600000)) {
+    const [y0, y1] = getYearRange();
+    return CACHE[key].data.filter(a => a.year >= y0 && a.year <= y1);
+  }
+  const proxy = CFG.proxyUrl;
+  if (!proxy) return null;
+  try {
+    const url = proxy + '/api/articles?publisherId=' + publisherId + '&limit=200';
+    const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    const d = await r.json();
+    if (d.result === 'success' && d.data && d.data.records) {
+      CACHE[key] = { data: d.data.records, ts: now };
+      const [y0, y1] = getYearRange();
+      return CACHE[key].data.filter(a => a.year >= y0 && a.year <= y1);
+    }
+    return [];
+  } catch (e) {
+    console.warn('fetch failed for', publisherId, e.message);
+    return null;
+  }
+}
+
+// Strip HTML tags
+function stripHtml(s) { return (s || '').replace(/<[^>]*>/g, '').trim(); }
+
+// Translate Chinese tokens to English
+function cnToEn(token) { return CN_EN[token] || null; }
+
+// Journal match score
+function journalScore(query, j) {
+  const q = query.toLowerCase();
+  const tokens = q.split(/[\s,，、]+/).filter(t => t.length > 0);
+  let s = 0;
+  if (j.name.toLowerCase().includes(q)) s += 25;
+  if (j.nameCN.includes(q)) s += 20;
+  for (const t of tokens) {
+    if (j.name.toLowerCase().includes(t)) s += 10;
+    if (j.nameCN.includes(t)) s += 8;
+    if (j.keywords.some(k => k === t || k.includes(t) || t.includes(k))) s += 4;
+    const en = cnToEn(t);
+    if (en) for (const e of en) {
+      if (j.name.toLowerCase().includes(e)) s += 8;
+      if (j.keywords.some(k => k.includes(e) || e.includes(k))) s += 4;
+    }
+  }
+  return s;
+}
+
+// Article match score
+function articleScore(title, abstract, query) {
+  const q = query.toLowerCase();
+  const t = (title || '').toLowerCase();
+  const ab = (abstract || '').toLowerCase();
+  const tokens = q.split(/[\s,，、]+/).filter(x => x.length > 0);
+  let s = 0;
+  if (t.includes(q)) s += 30;
+  if (ab.includes(q)) s += 10;
+  for (const tk of tokens) {
+    if (t.includes(tk)) s += 6;
+    if (ab.includes(tk)) s += 2;
+    const en = cnToEn(tk);
+    if (en) for (const e of en) {
+      if (t.includes(e)) s += 6;
+      if (ab.includes(e)) s += 3;
+    }
+    // sub-token decomposition
+    for (const [cn, enVals] of Object.entries(CN_EN)) {
+      if (cn !== tk && cn.length >= 2 && tk.includes(cn)) {
+        for (const e of enVals) {
+          if (t.includes(e)) s += 4;
+          if (ab.includes(e)) s += 2;
+        }
+      }
+    }
+  }
+  const enFull = cnToEn(q);
+  if (enFull) for (const e of enFull) {
+    if (t.includes(e)) s += 12;
+    if (ab.includes(e)) s += 5;
+  }
+  return s;
+}
+
+// Find best matching articles for a query
+async function findArticles(query, maxResults = 5) {
+  const scored = MAP_JOURNALS.map(j => ({ j, s: journalScore(query, j) })).sort((a,b)=>b.s-a.s);
+  const toSearch = scored.filter(x => x.s >= 8).slice(0, 10);
+  if (toSearch.length === 0) {
+    // fallback: search top journals by keywords
+    toSearch.push(...scored.slice(0, 6));
+  }
+
+  const results = await Promise.all(toSearch.map(x => fetchArticles(x.j.id)));
+  const all = [];
+  for (let i = 0; i < results.length; i++) {
+    if (!results[i]) continue;
+    for (const art of results[i]) {
+      const title = stripHtml(art.titleEn);
+      const ab = stripHtml(art.abstractinfoEn);
+      const sc = articleScore(title, ab, query);
+      if (sc > 0) all.push({
+        title, doi: art.doi,
+        jId: toSearch[i].j.id, jName: toSearch[i].j.name,
+        year: art.year, volume: art.volume, issue: art.issue,
+        type: art.classifyinfoEn || 'ARTICLE', score: sc
+      });
+    }
+  }
+  all.sort((a,b) => b.score - a.score);
+  return all.slice(0, maxResults);
+}
+
+// ============================================================
+// JOURNAL DROPDOWN
+// ============================================================
+function initJournalDropdown() {
+  const dd = document.getElementById('journalDropdown');
+  dd.innerHTML = '<div class="journal-opt selected" data-val="all" onclick="pickJournal(\'all\',\'全部期刊\',this)">全部期刊</div>';
+  for (const j of MAP_JOURNALS) {
+    const d = document.createElement('div');
+    d.className = 'journal-opt';
+    d.setAttribute('data-val', j.id);
+    d.textContent = j.name;
+    d.onclick = function() { pickJournal(j.id, j.name, d); };
+    dd.appendChild(d);
+  }
+}
+function toggleJournalDrop(e) {
+  e.stopPropagation();
+  document.getElementById('journalWrap').classList.toggle('open');
+}
+function pickJournal(val, label, el) {
+  currentJournal = val;
+  journalSelectLabel = label;
+  document.getElementById('journalText').textContent = label;
+  document.querySelectorAll('.journal-opt').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('journalWrap').classList.remove('open');
+}
+initJournalDropdown();
+
+// ============================================================
+// KEYWORD SEARCH
+// ============================================================
+async function doKeywordSearch() {
+  if (!CFG.proxyUrl) { alert('请先配置代理地址（点击右上角 API 配置按钮）'); return; }
+  const q = document.getElementById('searchInput').value.trim();
+  if (!q) return;
+
+  const btn = document.getElementById('searchBtn');
+  const bc  = document.getElementById('searchBtnContent');
+  btn.disabled = true;
+  bc.innerHTML = '<div class="spinner"></div>';
+
+  const resultsDiv = document.getElementById('searchResults');
+  resultsDiv.style.display = 'block';
+  resultsDiv.innerHTML = '<div class="card" style="text-align:center;padding:28px;color:var(--text-light);font-size:14px;">正在检索中，请稍候…</div>';
+
+  try {
+    let articles = [];
+    if (currentJournal !== 'all') {
+      // Specific journal: fetch + filter
+      const arts = await fetchArticles(currentJournal);
+      if (arts) {
+        for (const art of arts) {
+          const title = stripHtml(art.titleEn);
+          const ab = stripHtml(art.abstractinfoEn);
+          const sc = articleScore(title, ab, q);
+          if (sc > 0) articles.push({ title, doi: art.doi, jId: currentJournal, jName: journalSelectLabel, year: art.year, volume: art.volume, issue: art.issue, type: art.classifyinfoEn || 'ARTICLE', score: sc });
+        }
+      }
+    } else {
+      articles = await findArticles(q, 40);
+    }
+    articles.sort((a,b) => b.score - a.score);
+
+    if (articles.length === 0) {
+      resultsDiv.innerHTML = renderNoResult(q);
+    } else {
+      resultsDiv.innerHTML = renderArticleList(articles, q);
+    }
+  } catch(err) {
+    resultsDiv.innerHTML = '<div class="card"><div class="status-msg status-error">检索出错：' + err.message + '</div></div>';
+  }
+  btn.disabled = false;
+  bc.textContent = '检索';
+}
+
+// ============================================================
+// PARAGRAPH CITATION (AI)
+// ============================================================
+async function doCiteSearch() {
+  const para = document.getElementById('paraInput').value.trim();
+  if (!para) { alert('请先粘贴您的段落内容'); return; }
+  if (!CFG.apiKey) { openModal(); return; }
+  if (!CFG.proxyUrl) { openModal(); return; }
+
+  const btn = document.getElementById('citeBtn');
+  const bc  = document.getElementById('citeBtnContent');
+  btn.disabled = true;
+  bc.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div>';
+
+  const resultsDiv = document.getElementById('citeResults');
+  resultsDiv.style.display = 'block';
+  resultsDiv.innerHTML = '<div class="card" style="text-align:center;padding:28px;color:var(--text-light);font-size:14px;">AI 正在分析段落并检索相关文章…</div>';
+
+  try {
+    // Step 1: Ask AI to extract key topics from the paragraph
+    const extractPrompt = `You are a research assistant. Read the following paragraph and extract 2-3 concise English search queries (each 2-4 words) that capture the core scientific topics discussed. Return ONLY a JSON array of strings, no explanation.
+
+Paragraph:
+"""
+${para}
+"""
+
+Return format example: ["salt stress tolerance", "root development arabidopsis"]`;
+
+    const extractResp = await callDeepSeek(extractPrompt, 200);
+    let queries = [];
+    try {
+      const match = extractResp.match(/\[[\s\S]*?\]/);
+      queries = match ? JSON.parse(match[0]) : [para.slice(0, 80)];
+    } catch {
+      queries = [para.slice(0, 80)];
+    }
+
+    // Step 2: Fetch matching articles for each query
+    let candidateArticles = [];
+    for (const q of queries.slice(0, 3)) {
+      const arts = await findArticles(q, 8);
+      for (const a of arts) {
+        if (!candidateArticles.find(x => x.doi === a.doi)) candidateArticles.push(a);
+      }
+    }
+    candidateArticles.sort((a,b) => b.score - a.score);
+    const topArts = candidateArticles.slice(0, 5);
+
+    if (topArts.length === 0) {
+      resultsDiv.innerHTML = renderNoResult('the given paragraph');
+      btn.disabled = false;
+      bc.textContent = '智能推荐引用';
+      return;
+    }
+
+    // Step 3: Ask AI to generate citation sentences
+    const artList = topArts.map((a,i) =>
+      `[${i+1}] ${a.title}. ${a.jName} (${a.year}). DOI: ${a.doi}`
+    ).join('\n');
+
+    const citationPrompt = `You are an academic writing assistant helping a researcher add citations to their paper. 
+
+The researcher's paragraph (in Chinese or English):
+"""
+${para}
+"""
+
+Here are relevant MAP journal articles (published in last 2 years) that can be cited:
+${artList}
+
+Task: Write 2 citation sentences in the SAME language as the paragraph that can be naturally inserted after the paragraph to broaden its scope or deepen discussion. Each sentence should:
+- Cite 1-2 of the articles above using "[n]" notation
+- Be academically fluent and specific (not generic)
+- Add real scientific value (a different angle, methodology, or finding)
+
+Also provide a 1-sentence reason for each citation (why it adds value, e.g., "拓展了讨论广度" / "补充了分子机制视角" / "提供了近期实验支撑").
+
+Return ONLY a JSON array (no markdown), like:
+[
+  {
+    "sentence": "...[1].",
+    "reason": "...",
+    "cited": [1]
+  },
+  {
+    "sentence": "...[2].",
+    "reason": "...",
+    "cited": [2]
+  }
+]`;
+
+    const citationResp = await callDeepSeek(citationPrompt, 800);
+    let suggestions = [];
+    try {
+      const match = citationResp.match(/\[[\s\S]*\]/);
+      suggestions = match ? JSON.parse(match[0]) : [];
+    } catch {
+      suggestions = [];
+    }
+
+    // Render
+    resultsDiv.innerHTML = renderCiteResults(suggestions, topArts);
+
+  } catch(err) {
+    resultsDiv.innerHTML = '<div class="card"><div class="status-msg status-error">出错：' + err.message + '</div></div>';
+  }
+  btn.disabled = false;
+  bc.textContent = '智能推荐引用';
+}
+
+// ── Call DeepSeek API ──
+async function callDeepSeek(prompt, maxTokens = 500) {
+  const resp = await fetch(DEEPSEEK_API, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + CFG.apiKey,
+    },
+    body: JSON.stringify({
+      model: 'deepseek-chat',
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: maxTokens,
+      temperature: 0.3,
+    }),
+  });
+  if (!resp.ok) {
+    const e = await resp.text();
+    throw new Error('DeepSeek API 错误: ' + resp.status + ' ' + e.slice(0, 200));
+  }
+  const d = await resp.json();
+  return d.choices[0].message.content;
+}
+
+// ============================================================
+// RENDER HELPERS
+// ============================================================
+const TYPE_LABEL = { ARTICLE:'研究论文', REVIEW:'综述', 'MINI REVIEW':'综述', PERSPECTIVE:'观点', EDITORIAL:'编委评论', 'SHORT COMMUNICATION':'简报', LETTER:'通讯' };
+const TYPE_CSS   = { ARTICLE:'tag-ARTICLE', REVIEW:'tag-REVIEW', 'MINI REVIEW':'tag-REVIEW', PERSPECTIVE:'tag-PERSPECTIVE', EDITORIAL:'tag-EDITORIAL', LETTER:'tag-LETTER', 'SHORT COMMUNICATION':'tag-SHORT' };
+
+function renderArticleItem(a) {
+  const url = 'https://www.maxapress.com/' + a.jId + '/article/' + a.doi;
+  const jUrl = 'https://www.maxapress.com/' + a.jId;
+  const tl = TYPE_LABEL[a.type] || a.type || '研究论文';
+  const tc = TYPE_CSS[a.type] || 'tag-ARTICLE';
+  return `<div class="article-item">
+    <div class="art-title"><a href="${url}" target="_blank">${a.title}</a></div>
+    <div class="art-meta">
+      <a href="${jUrl}" class="art-journal" target="_blank">${a.jName}</a>
+      <span>${a.year}${a.volume ? ' · Vol.'+a.volume : ''}${a.issue ? '('+a.issue+')' : ''}</span>
+      <span class="art-tag ${tc}">${tl}</span>
+      <span class="art-doi">DOI: ${a.doi}</span>
+    </div>
+  </div>`;
+}
+
+function renderArticleList(articles, query) {
+  const [y0, y1] = getYearRange();
+  return `<div class="card">
+    <div class="articles-header">
+      <div class="articles-title">检索结果</div>
+      <div class="articles-count">${articles.length} 篇匹配文章 · ${y0}–${y1} 年</div>
+    </div>
+    ${articles.map(renderArticleItem).join('')}
+    <div class="citation-hint">📝 点击标题查看全文与引用格式，DOI 已标注</div>
+  </div>`;
+}
+
+function renderCiteResults(suggestions, articles) {
+  const [y0, y1] = getYearRange();
+  let html = '';
+
+  if (suggestions.length > 0) {
+    // AI sentence cards
+    html += `<div class="card">
+      <div class="card-label"><span class="icon">✨</span>推荐引用句子</div>`;
+
+    for (const sug of suggestions) {
+      // Build sentence with linked citations
+      let sentence = sug.sentence || '';
+      // Replace [n] with actual DOI links
+      sentence = sentence.replace(/\[(\d+)\]/g, (m, n) => {
+        const idx = parseInt(n) - 1;
+        const art = articles[idx];
+        if (!art) return m;
+        const url = 'https://www.maxapress.com/' + art.jId + '/article/' + art.doi;
+        return `<a class="ref-link" href="${url}" target="_blank" title="${art.title}">[${n}]</a>`;
+      });
+
+      const plainText = sug.sentence || '';
+      html += `<div class="ai-card">
+        <div class="ai-card-header">
+          <span class="ai-label">AI 推荐句</span>
+          <button class="copy-btn" onclick="copyText(this, ${JSON.stringify(plainText)})">
+            📋 复制
+          </button>
+        </div>
+        <div class="ai-sentence">${sentence}</div>
+        <div class="ai-reason"><strong>引用原因：</strong>${sug.reason || ''}</div>
+      </div>`;
+    }
+    html += `</div>`;
+  }
+
+  // Referenced articles
+  html += `<div class="card">
+    <div class="articles-header">
+      <div class="articles-title">推荐文章</div>
+      <div class="articles-count">${articles.length} 篇匹配 · ${y0}–${y1} 年</div>
+    </div>
+    ${articles.map(renderArticleItem).join('')}
+    <div class="citation-hint">📝 以上文章均已在 MAP 期刊正式发表，可直接引用。点击标题查看全文。</div>
+  </div>`;
+
+  return html;
+}
+
+function renderNoResult(q) {
+  return `<div class="card">
+    <div class="no-result">
+      <div class="nr-icon">📚</div>
+      <h3>未找到匹配文章</h3>
+      <p>在近两年 MAP 期刊文章中未能匹配到相关结果。可尝试使用英文关键词，或前往 MAP 全平台搜索。</p>
+      <a class="full-search-btn" href="https://www.maxapress.com/search" target="_blank">前往 MAP 全平台检索 →</a>
+    </div>
+  </div>`;
+}
+
+// ── Copy to clipboard ──
+function copyText(btn, text) {
+  navigator.clipboard.writeText(text).then(() => {
+    btn.classList.add('copied');
+    btn.textContent = '✓ 已复制';
+    setTimeout(() => {
+      btn.classList.remove('copied');
+      btn.textContent = '📋 复制';
+    }, 2000);
+  }).catch(() => {
+    // fallback
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    btn.classList.add('copied');
+    btn.textContent = '✓ 已复制';
+    setTimeout(() => { btn.classList.remove('copied'); btn.textContent = '📋 复制'; }, 2000);
+  });
+}
+</script>
+</body>
+</html>
