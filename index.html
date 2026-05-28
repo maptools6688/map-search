@@ -557,45 +557,12 @@ body {
 </head>
 <body>
 
-<!-- API Key Config Chip (top right) -->
-<div id="apiKeyChip" class="api-key-chip unset" onclick="openModal()">⚙️ 配置 API Key</div>
-
 <!-- Header -->
 <header class="header">
   <img src="MAP_logo.png" class="header-logo" alt="MAP" onerror="this.style.display='none'">
   <h1>MAP 文献推荐</h1>
   <p>粘贴您的段落，智能推荐 MAP 期刊文章，并生成可直接引用的学术句子</p>
 </header>
-
-<!-- Config Banner -->
-<div class="config-banner" id="configBanner">
-  <span>⚠️ 未配置 DeepSeek API Key，<strong>段落引用功能</strong>暂不可用。</span>
-  <button class="config-btn" onclick="openModal()">立即配置</button>
-</div>
-
-<!-- Config Modal -->
-<div class="modal-overlay hidden" id="modalOverlay">
-  <div class="modal">
-    <h2>⚙️ 配置 DeepSeek API Key</h2>
-    <p>API Key 仅保存在您的浏览器本地（localStorage），不会上传到任何服务器。</p>
-    <ol class="step-list">
-      <li>访问 <a href="https://platform.deepseek.com/api_keys" target="_blank">platform.deepseek.com/api_keys</a></li>
-      <li>注册并创建一个 API Key</li>
-      <li>复制粘贴到下方输入框</li>
-    </ol>
-    <label>DeepSeek API Key</label>
-    <input type="password" id="apiKeyInput" placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
-    <label>MAP API 代理地址（Cloudflare Worker）</label>
-    <input type="text" id="proxyInput" placeholder="https://map-proxy.xxx.workers.dev">
-    <p style="font-size:12px;color:#999;margin-top:-10px;margin-bottom:16px;">
-      请先按照说明部署 Cloudflare Worker，部署后将地址填入此处。
-    </p>
-    <div class="modal-btns">
-      <button class="btn-cancel" onclick="closeModal()">取消</button>
-      <button class="btn-save" onclick="saveConfig()">保存</button>
-    </div>
-  </div>
-</div>
 
 <!-- Main Content -->
 <main class="main">
@@ -636,7 +603,7 @@ body {
       <div style="position:relative;">
         <div class="search-row">
           <input type="text" class="search-input" id="searchInput"
-            placeholder="输入关键词（中英文均可）：银杏、salt stress、drought tolerance…"
+            placeholder="搜索关键词（中英文）：salt stress·林木育种·药用植物·重金属·灌溉工程·seed germination…"
             onkeydown="if(event.key==='Enter')doKeywordSearch()">
           <div class="search-divider"></div>
           <div class="journal-select-wrap" id="journalWrap">
@@ -668,51 +635,13 @@ body {
 
 <script>
 // ============================================================
-// CONFIG — Cloudflare Worker Proxy URL
-// 部署 Cloudflare Worker 后，将地址填入下方 (或用户通过设置弹窗配置)
+// CONFIG — Cloudflare Worker Proxy URL (handles MAP API + DeepSeek API)
 // ============================================================
 const DEFAULT_PROXY = 'https://map-proxy.guxiaoxiao682.workers.dev';
-const DEEPSEEK_API  = 'https://api.deepseek.com/v1/chat/completions';
 
-// ── Load config ──
 let CFG = {
-  apiKey:   localStorage.getItem('map_deepseek_key') || '',
   proxyUrl: localStorage.getItem('map_proxy_url') || DEFAULT_PROXY,
 };
-
-function saveConfig() {
-  const k = document.getElementById('apiKeyInput').value.trim();
-  const p = document.getElementById('proxyInput').value.trim().replace(/\/$/, '');
-  if (!k) { alert('请输入 API Key'); return; }
-  if (!p) { alert('请输入代理地址'); return; }
-  CFG.apiKey = k;
-  CFG.proxyUrl = p;
-  localStorage.setItem('map_deepseek_key', k);
-  localStorage.setItem('map_proxy_url', p);
-  closeModal();
-  updateConfigUI();
-}
-function openModal() {
-  document.getElementById('apiKeyInput').value = CFG.apiKey;
-  document.getElementById('proxyInput').value = CFG.proxyUrl;
-  document.getElementById('modalOverlay').classList.remove('hidden');
-}
-function closeModal() {
-  document.getElementById('modalOverlay').classList.add('hidden');
-}
-function updateConfigUI() {
-  const hasKey = !!CFG.apiKey && !!CFG.proxyUrl;
-  document.getElementById('configBanner').classList.toggle('hidden', hasKey);
-  const chip = document.getElementById('apiKeyChip');
-  if (hasKey) {
-    chip.className = 'api-key-chip set';
-    chip.textContent = '✓ API 已配置';
-  } else {
-    chip.className = 'api-key-chip unset';
-    chip.textContent = '⚙️ 配置 API Key';
-  }
-}
-updateConfigUI();
 
 // ── Tab switch ──
 function switchTab(tab) {
@@ -726,7 +655,6 @@ function switchTab(tab) {
 document.addEventListener('click', e => {
   const w = document.getElementById('journalWrap');
   if (w && !w.contains(e.target)) w.classList.remove('open');
-  if (document.getElementById('modalOverlay') === e.target) closeModal();
 });
 
 // ============================================================
@@ -1006,7 +934,7 @@ initJournalDropdown();
 // KEYWORD SEARCH
 // ============================================================
 async function doKeywordSearch() {
-  if (!CFG.proxyUrl) { alert('请先配置代理地址（点击右上角 API 配置按钮）'); return; }
+  if (!CFG.proxyUrl) { alert('代理服务未配置'); return; }
   const q = document.getElementById('searchInput').value.trim();
   if (!q) return;
 
@@ -1055,8 +983,7 @@ async function doKeywordSearch() {
 async function doCiteSearch() {
   const para = document.getElementById('paraInput').value.trim();
   if (!para) { alert('请先粘贴您的段落内容'); return; }
-  if (!CFG.apiKey) { openModal(); return; }
-  if (!CFG.proxyUrl) { openModal(); return; }
+  if (!CFG.proxyUrl) { alert('代理服务未配置，请联系管理员'); return; }
 
   const btn = document.getElementById('citeBtn');
   const bc  = document.getElementById('citeBtnContent');
@@ -1160,14 +1087,11 @@ Return ONLY a JSON array (no markdown), like:
   bc.textContent = '智能推荐引用';
 }
 
-// ── Call DeepSeek API ──
+// ── Call DeepSeek API (via Cloudflare Worker proxy) ──
 async function callDeepSeek(prompt, maxTokens = 500) {
-  const resp = await fetch(DEEPSEEK_API, {
+  const resp = await fetch(CFG.proxyUrl + '/api/deepseek', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + CFG.apiKey,
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model: 'deepseek-chat',
       messages: [{ role: 'user', content: prompt }],
@@ -1177,7 +1101,7 @@ async function callDeepSeek(prompt, maxTokens = 500) {
   });
   if (!resp.ok) {
     const e = await resp.text();
-    throw new Error('DeepSeek API 错误: ' + resp.status + ' ' + e.slice(0, 200));
+    throw new Error('DeepSeek API error: ' + resp.status + ' ' + e.slice(0, 200));
   }
   const d = await resp.json();
   return d.choices[0].message.content;
