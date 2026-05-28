@@ -478,8 +478,22 @@ body {
 .keyword-chips {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 10px;
   padding: 10px 2px 0;
+}
+.kw-chip-label {
+  display: inline-block;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-family: inherit;
+  color: #8c8c8c;
+  background: #f0f0f0;
+  border: 1px solid #d9d9d9;
+  border-radius: 18px;
+  user-select: none;
+  white-space: nowrap;
+  cursor: default;
 }
 .kw-chip {
   display: inline-block;
@@ -503,6 +517,11 @@ body {
 .kw-chip:active {
   background: #bcd4ec;
   transform: scale(0.97);
+}
+.chips-hint {
+  font-size: 12px;
+  color: #a0aab4;
+  padding: 6px 2px 0;
 }
 
 /* ── Status Messages ── */
@@ -613,7 +632,7 @@ body {
     <div class="card">
       <div class="card-label"><span class="icon">📄</span>粘贴您正在撰写的段落</div>
       <textarea class="para-textarea" id="paraInput"
-        placeholder="将您论文中的一段话粘贴于此，系统将智能匹配相关 MAP 文章，并为您生成可直接引用的学术句子（含引用原因）……"></textarea>
+        placeholder="在此粘贴论文段落…"></textarea>
       <div class="submit-row">
         <span class="hint-text">支持中英文段落 · 匹配近两年 MAP 期刊文章</span>
         <button class="btn-primary" id="citeBtn" onclick="doCiteSearch()">
@@ -634,7 +653,7 @@ body {
       <div style="position:relative;">
         <div class="search-row">
           <input type="text" class="search-input" id="searchInput"
-            placeholder="输入关键词，或点击下方标签快速检索"
+            placeholder="输入关键词检索"
             onkeydown="if(event.key==='Enter')doKeywordSearch()">
           <div class="search-divider"></div>
           <div class="journal-select-wrap" id="journalWrap">
@@ -649,19 +668,22 @@ body {
           </button>
         </div>
         <div class="keyword-chips" id="keywordChips">
+          <span class="kw-chip-label">示例</span>
           <span class="kw-chip" data-kw="salt stress">salt stress</span>
-          <span class="kw-chip" data-kw="林木育种">林木育种</span>
-          <span class="kw-chip" data-kw="药用植物">药用植物</span>
-          <span class="kw-chip" data-kw="重金属">重金属</span>
-          <span class="kw-chip" data-kw="灌溉工程">灌溉工程</span>
+          <span class="kw-chip" data-kw="drought">drought</span>
+          <span class="kw-chip" data-kw="heavy metal">heavy metal</span>
           <span class="kw-chip" data-kw="seed germination">seed germination</span>
-          <span class="kw-chip" data-kw="抗逆">抗逆</span>
-          <span class="kw-chip" data-kw="基因表达">基因表达</span>
-          <span class="kw-chip" data-kw="干旱胁迫">干旱胁迫</span>
-          <span class="kw-chip" data-kw="盐胁迫">盐胁迫</span>
-          <span class="kw-chip" data-kw="genome editing">genome editing</span>
           <span class="kw-chip" data-kw="CRISPR">CRISPR</span>
+          <span class="kw-chip" data-kw="forest">forest</span>
+          <span class="kw-chip" data-kw="arabidopsis">arabidopsis</span>
+          <span class="kw-chip" data-kw="盐胁迫">盐胁迫</span>
+          <span class="kw-chip" data-kw="重金属">重金属</span>
+          <span class="kw-chip" data-kw="干旱">干旱</span>
+          <span class="kw-chip" data-kw="灌溉工程">灌溉工程</span>
+          <span class="kw-chip" data-kw="药用植物">药用植物</span>
+          <span class="kw-chip" data-kw="林木育种">林木育种</span>
         </div>
+        <div class="chips-hint">支持中英文关键词检索，点击上方标签即可快速搜索</div>
       </div>
     </div>
 
@@ -801,6 +823,19 @@ const CN_EN = {
   "开花":["flowering","floral","flower"],
   "木质素":["lignin","lignification"],
   "纤维素":["cellulose","cell wall"],
+  // 种子/胚胎/发育（2026-05-28 补齐 Seed Biology 核心术语）
+  "种子":["seed","seeds","seed development"],
+  "休眠":["dormancy","dormant","seed dormancy"],
+  "胚":["embryo","embryonic"],
+  "胚胎":["embryo","embryonic","embryogenesis"],
+  "胚乳":["endosperm"],
+  "胚珠":["ovule"],
+  "花粉":["pollen","pollination"],
+  "发育":["development","developmental","growth"],
+  "生殖":["reproduction","reproductive","fertility"],
+  "配子体":["gametophyte"],
+  "活力":["vigor","viability","seed vigor"],
+  "引发":["priming","seed priming","hydropriming"],
   "黄酮":["flavonoid","flavone","anthocyanin"],
   "生物碱":["alkaloid"],
   "萜类":["terpenoid","terpene"],
@@ -877,6 +912,457 @@ const CN_EN = {
   "草药":["herb","herbal","medicinal plant"],
   "森林":["forest","forestry","woodland"],
   "树木":["tree","woody plant","timber"],
+  // 灌溉 / 育种 / 药用植物（2026-05-28 补齐）
+  "灌溉":["irrigation","watering"],
+  "灌溉工程":["irrigation","irrigation engineering","water management","water saving"],
+  "育种":["breeding","genetic improvement","hybridization"],
+  "林木育种":["forest breeding","tree breeding","forest genetics","forestry improvement"],
+  "林木":["forest","tree","timber","woody"],
+  "药用":["medicinal","pharmaceutical","herbal"],
+  "药用植物":["medicinal plant","medicinal plants","herbal plant","herb medicine"],
+  "植物":["plant","plants","botanical"],
+  "基因":["gene","genetic","genomic","genome"],
+  "基因表达":["gene expression","transcriptome","transcriptional","RNA-seq","qPCR"],
+  "干旱胁迫":["drought stress","water deficit","water stress","drought"],
+  "基因组":["genome","genomic","whole genome"],
+  "基因组编辑":["genome editing","gene editing","CRISPR","CRISPR-Cas9"],
+
+  // ═══════════════════════════════════════════
+  // 植物激素 & 信号 (Plant Hormones & Signaling)
+  // ═══════════════════════════════════════════
+  "脱落酸":["abscisic acid","ABA"],
+  "赤霉素":["gibberellin","GA","GA3"],
+  "生长素":["auxin","IAA","indole-3-acetic acid"],
+  "细胞分裂素":["cytokinin","CK","zeatin"],
+  "水杨酸":["salicylic acid","SA"],
+  "茉莉酸":["jasmonic acid","JA","methyl jasmonate","MeJA"],
+  "乙烯":["ethylene","ET"],
+  "油菜素内酯":["brassinosteroid","BR","brassinolide"],
+  "独脚金内酯":["strigolactone","SL"],
+  "多胺":["polyamine","putrescine","spermidine","spermine"],
+  "一氧化氮":["nitric oxide","NO"],
+  "钙信号":["calcium signaling","Ca2+","calmodulin"],
+  "受体":["receptor","sensing"],
+  "激酶":["kinase","phosphorylation"],
+  "磷酸化":["phosphorylation","phosphorylated"],
+  "去磷酸化":["dephosphorylation"],
+
+  // ═══════════════════════════════════════════
+  // 分子生物学技术 (Molecular Techniques)
+  // ═══════════════════════════════════════════
+  "转录组":["transcriptome","RNA-seq","transcriptomic"],
+  "蛋白组":["proteome","proteomic"],
+  "代谢组":["metabolome","metabolomic"],
+  "基因组学":["genomics","genomic"],
+  "蛋白质组学":["proteomics"],
+  "代谢组学":["metabolomics"],
+  "表观遗传学":["epigenetics","epigenetic"],
+  "生物信息":["bioinformatics","computational biology"],
+  "测序":["sequencing","NGS","next-generation sequencing"],
+  "组装":["assembly","genome assembly"],
+  "注释":["annotation","functional annotation"],
+  "过表达":["overexpression","overexpress"],
+  "敲除":["knockout","gene knockout","mutant"],
+  "沉默":["silencing","RNAi","RNA interference","VIGS"],
+  "亚细胞定位":["subcellular localization","localization"],
+  "酵母双杂":["yeast two-hybrid","Y2H","protein interaction"],
+  "双分子荧光互补":["BiFC","bimolecular fluorescence complementation"],
+  "免疫共沉淀":["co-immunoprecipitation","Co-IP"],
+  "染色质免疫沉淀":["ChIP","chromatin immunoprecipitation"],
+  "凝胶阻滞":["EMSA","electrophoretic mobility shift assay"],
+  "荧光原位杂交":["FISH","fluorescence in situ hybridization"],
+  "实时荧光定量":["qPCR","quantitative PCR","RT-qPCR","real-time PCR"],
+  "蛋白印迹":["western blot","immunoblot"],
+  "基因枪":["gene gun","biolistic"],
+  "农杆菌":["agrobacterium","Agrobacterium tumefaciens"],
+  "转化":["transformation","genetic transformation"],
+  "再生":["regeneration","shoot regeneration"],
+  "愈伤组织":["callus","callus induction"],
+  "体细胞胚":["somatic embryo","somatic embryogenesis"],
+  "分化":["differentiation","organogenesis"],
+  "原生质体":["protoplast"],
+  "分子标记":["molecular marker","SSR","SNP","marker-assisted"],
+  "数量性状":["quantitative trait","QTL","quantitative trait locus"],
+  "全基因组关联":["GWAS","genome-wide association"],
+  "图位克隆":["map-based cloning","positional cloning"],
+  "基因编辑":["gene editing","genome editing","CRISPR","Cas9"],
+
+  // ═══════════════════════════════════════════
+  // 生理生化 (Physiology & Biochemistry)
+  // ═══════════════════════════════════════════
+  "活性氧":["reactive oxygen species","ROS","H2O2"],
+  "脯氨酸":["proline","Pro"],
+  "甜菜碱":["glycine betaine","betaine","GB"],
+  "谷胱甘肽":["glutathione","GSH"],
+  "超氧化物歧化酶":["superoxide dismutase","SOD"],
+  "过氧化氢酶":["catalase","CAT"],
+  "过氧化物酶":["peroxidase","POD"],
+  "丙二醛":["malondialdehyde","MDA"],
+  "抗坏血酸":["ascorbic acid","ascorbate","AsA","vitamin C"],
+  "可溶性糖":["soluble sugar","sugar content"],
+  "可溶性蛋白":["soluble protein"],
+  "叶绿素":["chlorophyll","Chl","photosynthetic pigment"],
+  "类胡萝卜素":["carotenoid","carotene"],
+  "叶绿体":["chloroplast","plastid"],
+  "线粒体":["mitochondria","mitochondrial"],
+  "内质网":["endoplasmic reticulum","ER"],
+  "高尔基体":["Golgi","Golgi apparatus"],
+  "细胞壁":["cell wall","cellulose","hemicellulose","pectin"],
+  "气孔":["stomatal","stomata","stoma"],
+  "蒸腾":["transpiration","water loss"],
+  "光合速率":["photosynthetic rate","Pn","net photosynthesis"],
+  "气孔导度":["stomatal conductance","Gs"],
+  "水分利用效率":["water use efficiency","WUE"],
+  "氮利用效率":["nitrogen use efficiency","NUE"],
+  "胞间CO2":["intercellular CO2","Ci"],
+  "呼吸":["respiration","respiratory"],
+  "能量代谢":["energy metabolism","ATP"],
+
+  // ═══════════════════════════════════════════
+  // 胁迫扩展 (Stress Extended)
+  // ═══════════════════════════════════════════
+  "渗透胁迫":["osmotic stress","osmotic adjustment"],
+  "氧化胁迫":["oxidative stress","oxidative damage"],
+  "淹水":["waterlogging","flooding","submergence","hypoxia"],
+  "营养胁迫":["nutrient stress","nutrient deficiency"],
+  "缺钾":["potassium deficiency","low potassium","K deficiency"],
+  "缺铁":["iron deficiency","Fe deficiency","chlorosis"],
+  "缺氮":["nitrogen deficiency","N deficiency"],
+  "缺磷":["phosphorus deficiency","P deficiency"],
+  "紫外":["UV","ultraviolet","UV-B"],
+  "辐射":["radiation","irradiation","gamma irradiation"],
+  "光照":["light","photoperiod","light intensity"],
+  "遮阴":["shade","shading","low light"],
+  "脱落":["abscission","shedding"],
+  "衰亡":["senescence","programmed cell death","PCD","apoptosis"],
+
+  // ═══════════════════════════════════════════
+  // 林业 (Forestry)
+  // ═══════════════════════════════════════════
+  "材性":["wood property","wood density","wood quality"],
+  "年轮":["tree ring","annual ring","dendrochronology"],
+  "碳汇":["carbon sink","carbon sequestration"],
+  "碳储量":["carbon storage","carbon stock"],
+  "林分":["stand","forest stand"],
+  "间伐":["thinning","forest thinning"],
+  "皆伐":["clearcutting","clear-cutting"],
+  "择伐":["selective cutting","selection harvest"],
+  "天然更新":["natural regeneration","regeneration"],
+  "人工林":["plantation","planted forest"],
+  "天然林":["natural forest","primary forest"],
+  "混交林":["mixed forest","mixed-species forest"],
+  "纯林":["pure forest","monoculture","pure stand"],
+  "林下":["understory","understorey"],
+  "枯落物":["litter","litterfall","leaf litter"],
+  "凋落物":["litter","litter decomposition","litterfall"],
+  "养分循环":["nutrient cycling","biogeochemical cycle"],
+  "分解":["decomposition","decay"],
+  "生物量":["biomass","aboveground biomass"],
+  "树高":["tree height","height growth"],
+  "胸径":["DBH","diameter at breast height","diameter"],
+  "材积":["volume","timber volume","tree volume"],
+  "林冠":["canopy","crown","forest canopy"],
+  "根系":["root","root system","root architecture","fine root"],
+  "菌根":["mycorrhizal","mycorrhiza","ectomycorrhizal","AMF"],
+  "土壤动物":["soil fauna","soil animal","earthworm","nematode"],
+
+  // ═══════════════════════════════════════════
+  // 草坪 & 牧草 (Grass & Forage)
+  // ═══════════════════════════════════════════
+  "牧草":["forage","forage grass","pasture"],
+  "饲用品质":["forage quality","feeding value","nutritive value"],
+  "放牧":["grazing","herbivory"],
+  "草地":["grassland","pasture","rangeland"],
+  "草甸":["meadow"],
+  "草坪":["turf","turfgrass","lawn"],
+  "干草":["hay"],
+  "青贮":["silage","ensiling"],
+  "除草":["weed control","herbicide"],
+
+  // ═══════════════════════════════════════════
+  // 园艺 & 花卉 (Horticulture & Floriculture)
+  // ═══════════════════════════════════════════
+  "花色":["flower color","petal color","pigmentation"],
+  "花香":["floral scent","flower fragrance","volatile"],
+  "花期":["flowering time","florescence","blooming"],
+  "瓶插寿命":["vase life"],
+  "切花":["cut flower","postharvest floral"],
+  "株型":["plant architecture","plant type","ideotype"],
+  "矮化":["dwarfing","dwarf","compact"],
+  "嫁接":["grafting","graft","rootstock","scion"],
+  "扦插":["cutting","cutting propagation"],
+  "组培":["tissue culture","micropropagation","in vitro"],
+  "体细胞变异":["somaclonal variation"],
+  "设施":["protected cultivation","greenhouse","plastic tunnel"],
+  "无土栽培":["soilless culture","hydroponics","substrate culture"],
+  "种植密度":["planting density","plant density"],
+  "整形修剪":["pruning","training"],
+
+  // ═══════════════════════════════════════════
+  // 连作 & 轮作 (Continuous Cropping & Rotation)
+  // ═══════════════════════════════════════════
+  "连作障碍":["continuous cropping obstacle","replant disease","monoculture problem"],
+  "轮作":["crop rotation","rotation","rotational cropping"],
+  "间作":["intercropping","intercrop"],
+  "套作":["relay intercropping","relay cropping"],
+
+  // ═══════════════════════════════════════════
+  // 土壤科学 (Soil Science)
+  // ═══════════════════════════════════════════
+  "有机质":["organic matter","soil organic matter","SOM"],
+  "团聚体":["aggregate","soil aggregate"],
+  "微生物群落":["microbial community","microbiome","bacterial community"],
+  "酶活性":["enzyme activity","soil enzyme"],
+  "土壤呼吸":["soil respiration","CO2 efflux"],
+  "孔隙度":["porosity","soil porosity"],
+  "容重":["bulk density"],
+  "土壤酸度":["soil acidity","soil pH","acidification"],
+  "盐渍化":["salinization","soil salinization"],
+  "侵蚀":["erosion","soil erosion"],
+  "退化":["degradation","land degradation"],
+  "改良":["amendment","soil amendment","soil improvement"],
+  "生物炭":["biochar"],
+  "堆肥":["compost","composting"],
+  "养分":["nutrient","nutrition","mineral nutrient"],
+  "施肥":["fertilization","fertilizer application"],
+  "有机肥":["organic fertilizer","manure"],
+  "化肥":["chemical fertilizer","inorganic fertilizer"],
+  "缓释肥":["slow-release fertilizer","controlled-release fertilizer"],
+  "氮循环":["nitrogen cycle","N cycling"],
+  "固氮":["nitrogen fixation","N fixation","nitrogenase"],
+  "硝化":["nitrification"],
+  "反硝化":["denitrification"],
+  "氨氧化":["ammonia oxidation","ammonia-oxidizing","AOA","AOB"],
+  "解磷":["phosphate solubilization","P solubilization"],
+
+  // ═══════════════════════════════════════════
+  // 新污染物 & 环境 (New Contaminants & Environment)
+  // ═══════════════════════════════════════════
+  "微塑料":["microplastic","nanoplastic"],
+  "全氟化合物":["PFAS","perfluoroalkyl","PFOA","PFOS"],
+  "持久性有机污染物":["persistent organic pollutant","POPs"],
+  "新兴污染物":["emerging contaminant","contaminants of emerging concern"],
+  "内分泌干扰物":["endocrine disrupting chemical","EDC"],
+  "农药残留":["pesticide residue"],
+  "抗生素抗性基因":["antibiotic resistance gene","ARG"],
+  "生态风险":["ecological risk","environmental risk"],
+  "暴露评估":["exposure assessment"],
+  "归趋":["fate","environmental fate","transport"],
+  "生物富集":["bioaccumulation","bioconcentration"],
+  "吸附":["adsorption","sorption"],
+  "解吸":["desorption"],
+  "光解":["photodegradation","photolysis"],
+  "水解":["hydrolysis"],
+  "氧化降解":["oxidative degradation","advanced oxidation"],
+  "生态毒性":["ecotoxicity","ecological toxicity"],
+  "人体健康":["human health","health risk","health effect"],
+
+  // ═══════════════════════════════════════════
+  // 真菌学 (Mycology)
+  // ═══════════════════════════════════════════
+  "担子菌":["basidiomycete","Basidiomycota"],
+  "子囊菌":["ascomycete","Ascomycota"],
+  "接合菌":["zygomycete","Zygomycota"],
+  "孢子":["spore","conidia","sporulation"],
+  "菌丝":["hyphae","mycelium","mycelial"],
+  "子实体":["fruiting body","sporocarp","mushroom"],
+  "液体发酵":["submerged fermentation","liquid fermentation"],
+  "固态发酵":["solid-state fermentation","SSF"],
+  "纤维素酶":["cellulase","cellulolytic enzyme"],
+  "漆酶":["laccase"],
+  "木聚糖酶":["xylanase"],
+  "植酸酶":["phytase"],
+  "真菌毒素":["mycotoxin","aflatoxin"],
+  "产毒":["toxigenic","toxin production"],
+  "生物防治":["biocontrol","biological control","antagonistic"],
+
+  // ═══════════════════════════════════════════
+  // 食品科学 (Food Science)
+  // ═══════════════════════════════════════════
+  "食品":["food","food product"],
+  "营养品质":["nutritional quality","nutritive value"],
+  "食品安全":["food safety","food contamination"],
+  "保鲜":["preservation","shelf life","fresh-keeping"],
+  "包装":["packaging","food packaging","edible film"],
+  "功能性食品":["functional food","nutraceutical"],
+  "发酵食品":["fermented food","fermentation"],
+  "感官评价":["sensory evaluation","sensory quality"],
+  "质构":["texture","rheology","firmness"],
+  "抗氧化活性":["antioxidant activity","antioxidant capacity","DPPH","FRAP"],
+  "多酚":["polyphenol","phenolic compound","total phenolic"],
+  "黄酮类化合物":["flavonoid","flavonoids","flavonol"],
+  "花青素":["anthocyanin","anthocyanins","proanthocyanidin"],
+  "类胡萝卜素":["carotenoid","β-carotene","lycopene"],
+  "维生素":["vitamin","ascorbic acid","α-tocopherol"],
+  "粗蛋白":["crude protein","protein content"],
+  "粗脂肪":["crude fat","lipid content"],
+  "膳食纤维":["dietary fiber","crude fiber"],
+  "氨基酸":["amino acid","amino acid profile"],
+  "脂肪酸":["fatty acid","unsaturated fatty acid"],
+  "挥发性成分":["volatile compound","volatile organic","aroma"],
+  "加工工艺":["processing technology","processing","optimization"],
+
+  // ═══════════════════════════════════════════
+  // 农业技术 (Agricultural Technology)
+  // ═══════════════════════════════════════════
+  "温室":["greenhouse","glasshouse"],
+  "水培":["hydroponic","hydroponics","nutrient solution"],
+  "垂直农业":["vertical farming","vertical agriculture","plant factory"],
+  "智慧农业":["smart agriculture","digital agriculture"],
+  "物联网":["IoT","Internet of Things","sensor network"],
+  "传感器":["sensor","biosensor","monitoring"],
+  "无人机":["drone","UAV","unmanned aerial vehicle"],
+  "遥感":["remote sensing","satellite imagery","NDVI"],
+  "精准农业":["precision agriculture","precision farming"],
+  "变量施肥":["variable rate fertilization","variable rate application"],
+  "灌溉制度":["irrigation scheduling","water management"],
+  "节水灌溉":["water-saving irrigation","deficit irrigation"],
+  "滴灌":["drip irrigation","trickle irrigation"],
+  "喷灌":["sprinkler irrigation"],
+  "自动控制":["automatic control","automation","PLC"],
+
+  // ═══════════════════════════════════════════
+  // 动物科学 (Animal Science)
+  // ═══════════════════════════════════════════
+  "动物":["animal","livestock"],
+  "家畜":["livestock","domestic animal"],
+  "饲料":["feed","diet","ration"],
+  "繁殖性能":["reproductive performance","fertility","litter size"],
+  "生长性能":["growth performance","body weight","daily gain"],
+  "肠道":["gut","intestine","intestinal"],
+  "瘤胃":["rumen","ruminal","ruminant"],
+  "瘤胃微生物":["rumen microbiome","rumen microbiota"],
+  "免疫":["immunity","immune","antibody"],
+  "疫苗":["vaccine","vaccination"],
+  "疫病":["disease","infection","epidemic"],
+  "产奶":["milk production","lactation","milk yield"],
+  "产蛋":["egg production","laying performance"],
+  "肉质":["meat quality","carcass","tenderness"],
+  "品种":["breed","variety","strain"],
+  "遗传改良":["genetic improvement","selection","breeding program"],
+  "杂交":["hybridization","crossbreeding","hybrid vigor"],
+  "标记辅助选择":["marker-assisted selection","MAS","genomic selection"],
+  "反刍":["ruminant","rumination"],
+  "单胃动物":["monogastric","non-ruminant"],
+  "肠道菌群":["gut microbiota","intestinal flora","gut microbiome"],
+  "短链脂肪酸":["short-chain fatty acid","SCFA","butyrate"],
+  "甲烷排放":["methane emission","CH4","enteric methane"],
+
+  // ═══════════════════════════════════════════
+  // 水产养殖 (Aquaculture / Ichthyology)
+  // ═══════════════════════════════════════════
+  "鱼类":["fish","teleost","finfish"],
+  "水产养殖":["aquaculture","fish farming"],
+  "鱼苗":["fry","fingerling","larval fish"],
+  "饵料":["feed","aquafeed","formulated feed"],
+  "鱼病":["fish disease","pathogen"],
+  "免疫增强剂":["immunostimulant"],
+  "生长激素":["growth hormone","IGF"],
+  "性腺":["gonad","ovary","testis"],
+  "产卵":["spawning","ovulation"],
+  "孵化":["hatching","incubation"],
+  "幼体":["larva","juvenile"],
+  "池塘养殖":["pond culture","pond aquaculture"],
+  "网箱养殖":["cage culture","net cage"],
+  "循环水养殖":["recirculating aquaculture","RAS"],
+  "水质":["water quality","dissolved oxygen","ammonia nitrogen"],
+
+  // ═══════════════════════════════════════════
+  // 饮料植物 (Beverage Plants)
+  // ═══════════════════════════════════════════
+  "茶":["tea","camellia","Camellia sinensis"],
+  "茶多酚":["tea polyphenol","tea catechin"],
+  "儿茶素":["catechin","EGCG","epigallocatechin gallate"],
+  "茶氨酸":["theanine","L-theanine"],
+  "咖啡碱":["caffeine","purine alkaloid"],
+  "茶香":["tea aroma","tea volatile","tea flavor"],
+  "茶叶加工":["tea processing","fermentation","withering"],
+  "咖啡豆":["coffee bean","green coffee","roasting"],
+  "烘焙":["roasting","baking"],
+  "冲泡":["brewing","infusion","extraction"],
+  "滋味":["taste","flavor","astringency","umami"],
+
+  // ═══════════════════════════════════════════
+  // 通用学术 & 数据分析 (General Academic)
+  // ═══════════════════════════════════════════
+  "综述":["review","literature review"],
+  "研究进展":["research progress","recent advances","review"],
+  "生理":["physiology","physiological"],
+  "生化":["biochemistry","biochemical"],
+  "形态":["morphology","morphological","phenotype"],
+  "解剖":["anatomy","anatomical","histology"],
+  "细胞":["cell","cellular"],
+  "组织":["tissue","histological"],
+  "器官":["organ","organogenesis"],
+  "分子":["molecular","molecule"],
+  "遗传":["genetics","genetic","inheritance"],
+  "进化":["evolution","evolutionary","phylogeny"],
+  "系统发育":["phylogeny","phylogenetic","phylogenomics"],
+  "分类":["taxonomy","taxonomic","classification"],
+  "多样性":["diversity","biodiversity"],
+  "生态":["ecology","ecological"],
+  "环境因子":["environmental factor","environmental variable"],
+  "气候":["climate","climatic"],
+  "温度":["temperature","thermal"],
+  "水分":["water","moisture","hydration"],
+  "统计学":["statistics","statistical analysis"],
+  "方差分析":["ANOVA","analysis of variance"],
+  "主成分分析":["principal component analysis","PCA"],
+  "聚类分析":["cluster analysis","hierarchical clustering"],
+  "相关分析":["correlation analysis","Pearson correlation"],
+  "回归分析":["regression analysis","linear regression"],
+  "转录组测序":["RNA-seq","transcriptome sequencing"],
+  "基因家族":["gene family","multigene family"],
+  "共表达":["co-expression","gene co-expression","WGCNA"],
+  "选择压力":["selection pressure","Ka/Ks","positive selection"],
+  "基因复制":["gene duplication","duplication","tandem duplication"],
+  "可变剪接":["alternative splicing","splice variant"],
+  "非编码RNA":["non-coding RNA","lncRNA","miRNA","circRNA"],
+  "长链非编码RNA":["lncRNA","long non-coding RNA"],
+  "微小RNA":["miRNA","microRNA"],
+  "环状RNA":["circRNA","circular RNA"],
+  "启动子":["promoter","cis-element","cis-regulatory"],
+  "增强子":["enhancer"],
+  "转录调控":["transcriptional regulation","transcription factor","TF"],
+  "翻译后修饰":["post-translational modification","PTM"],
+
+  // ═══════════════════════════════════════════
+  // 能源 & 碳材料 (Energy & Carbon Materials)
+  // ═══════════════════════════════════════════
+  "碳材料":["carbon material","carbon-based"],
+  "石墨烯":["graphene","graphene oxide","GO"],
+  "碳纳米管":["carbon nanotube","CNT","MWCNT"],
+  "活性炭":["activated carbon","activated charcoal"],
+  "电容":["capacitance","supercapacitor"],
+  "电池":["battery","lithium-ion","electrode"],
+  "催化":["catalysis","catalyst","photocatalysis"],
+  "电催化":["electrocatalysis","electrocatalyst"],
+  "光催化":["photocatalysis","photocatalyst"],
+  "吸附剂":["adsorbent","sorbent"],
+  "热解":["pyrolysis","thermal decomposition"],
+  "固碳":["carbon sequestration","CO2 capture"],
+
+  // ═══════════════════════════════════════════
+  // 园林 & 景观 (Landscape)
+  // ═══════════════════════════════════════════
+  "园林":["landscape","garden","horticultural design"],
+  "绿化":["greening","afforestation","vegetation"],
+  "景观设计":["landscape design","landscape architecture"],
+  "公园":["park","urban green space"],
+  "屋顶绿化":["green roof","rooftop garden"],
+  "垂直绿化":["vertical greening","green wall","living wall"],
+
+  // ═══════════════════════════════════════════
+  // 管理 & 政策 (Management & Policy)
+  // ═══════════════════════════════════════════
+  "可持续发展":["sustainable development","sustainability"],
+  "政策":["policy","regulation"],
+  "管理":["management","administration"],
+  "评估":["assessment","evaluation"],
+  "监测":["monitoring","surveillance"],
+  "预警":["early warning","forecast"],
+  "战略":["strategy","strategic"],
+  "优化":["optimization","improvement"],
 };
 
 // ============================================================
@@ -997,7 +1483,7 @@ async function findArticles(query, maxResults = 5) {
       const ab = stripHtml(art.abstractinfoEn);
       const sc = articleScore(title, ab, query);
       if (sc > 0) all.push({
-        title, doi: art.doi,
+        title, abstract: ab.slice(0, 500), doi: art.doi,
         jId: toSearch[i].j.id, jName: toSearch[i].j.name,
         year: art.year, volume: art.volume, issue: art.issue,
         type: art.classifyinfoEn || 'ARTICLE', score: sc
@@ -1121,7 +1607,7 @@ Return format example: ["salt stress tolerance", "root development arabidopsis"]
       queries = [para.slice(0, 80)];
     }
 
-    // Step 2: Fetch matching articles for each query
+    // Step 2: Fetch matching articles for each query (coarse text match → top 15)
     let candidateArticles = [];
     for (const q of queries.slice(0, 3)) {
       const arts = await findArticles(q, 8);
@@ -1130,13 +1616,50 @@ Return format example: ["salt stress tolerance", "root development arabidopsis"]
       }
     }
     candidateArticles.sort((a,b) => b.score - a.score);
-    const topArts = candidateArticles.slice(0, 5);
+    candidateArticles = candidateArticles.slice(0, 15);
 
-    if (topArts.length === 0) {
+    if (candidateArticles.length === 0) {
       resultsDiv.innerHTML = renderNoResult('the given paragraph');
       btn.disabled = false;
       bc.textContent = '智能推荐引用';
       return;
+    }
+
+    // Step 2.5: AI semantic ranking — let AI pick the 5 most relevant articles
+    let topArts;
+    if (candidateArticles.length <= 5) {
+      topArts = candidateArticles;
+    } else {
+      resultsDiv.innerHTML = '<div class="card" style="text-align:center;padding:28px;color:var(--text-light);font-size:14px;">AI 正在从 ' + candidateArticles.length + ' 篇候选中筛选最匹配的文章…</div>';
+
+      const candidateList = candidateArticles.map((a,i) =>
+        `[${i}] ${a.title}. ${a.jName} (${a.year}). ${a.abstract}`
+      ).join('\n\n');
+
+      const rankPrompt = `You are a research assistant. Given a research paragraph and a list of candidate article titles with abstracts, select the 5 articles that are MOST semantically relevant to the paragraph. Consider topic overlap, methodology, species/context, and contribution type. Return ONLY the indices as a JSON array of numbers.
+
+Paragraph:
+"""
+${para}
+"""
+
+Candidate articles:
+${candidateList}
+
+Return ONLY a JSON array like: [3, 7, 1, 12, 5]`;
+
+      const rankResp = await callDeepSeek(rankPrompt, 150);
+      try {
+        const match = rankResp.match(/\[[\s\S]*?\]/);
+        const rankedIndices = match ? JSON.parse(match[0]) : [];
+        if (rankedIndices.length > 0) {
+          topArts = rankedIndices.map(i => candidateArticles[i]).filter(Boolean).slice(0, 5);
+        } else {
+          topArts = candidateArticles.slice(0, 5);
+        }
+      } catch {
+        topArts = candidateArticles.slice(0, 5);
+      }
     }
 
     // Step 3: Ask AI to generate citation sentences
