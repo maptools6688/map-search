@@ -1439,6 +1439,11 @@ function articleScore(title, abstract, query) {
   let s = 0;
   if (t.includes(q)) s += 30;
   if (ab.includes(q)) s += 10;
+
+  // Check if full query's EN translations appear in article — gate for sub-token decomposition
+  const enFull = cnToEn(q);
+  const fullEnMatched = enFull ? enFull.some(e => t.includes(e) || ab.includes(e)) : true;
+
   for (const tk of tokens) {
     if (t.includes(tk)) s += 6;
     if (ab.includes(tk)) s += 2;
@@ -1447,17 +1452,19 @@ function articleScore(title, abstract, query) {
       if (t.includes(e)) s += 6;
       if (ab.includes(e)) s += 3;
     }
-    // sub-token decomposition
-    for (const [cn, enVals] of Object.entries(CN_EN)) {
-      if (cn !== tk && cn.length >= 2 && tk.includes(cn)) {
-        for (const e of enVals) {
-          if (t.includes(e)) s += 4;
-          if (ab.includes(e)) s += 2;
+    // Sub-token decomposition — only when full query's EN terms match the article.
+    // Prevents generic sub-words (e.g. "胁迫"→"stress") from boosting unrelated articles.
+    if (fullEnMatched) {
+      for (const [cn, enVals] of Object.entries(CN_EN)) {
+        if (cn !== tk && cn.length >= 2 && tk.includes(cn)) {
+          for (const e of enVals) {
+            if (t.includes(e)) s += 4;
+            if (ab.includes(e)) s += 2;
+          }
         }
       }
     }
   }
-  const enFull = cnToEn(q);
   if (enFull) for (const e of enFull) {
     if (t.includes(e)) s += 12;
     if (ab.includes(e)) s += 5;
@@ -1793,10 +1800,11 @@ function renderCiteResults(suggestions, articles) {
       });
 
       const plainText = sug.sentence || '';
+      const esc = plainText.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
       html += `<div class="ai-card">
         <div class="ai-card-header">
           <span class="ai-label">AI 推荐句</span>
-          <button class="copy-btn" onclick="copyText(this, ${JSON.stringify(plainText)})">
+          <button class="copy-btn" data-text="${esc}" onclick="copyText(this)">
             📋 复制
           </button>
         </div>
@@ -1832,7 +1840,9 @@ function renderNoResult(q) {
 }
 
 // ── Copy to clipboard ──
-function copyText(btn, text) {
+function copyText(btn) {
+  const text = btn.dataset.text || '';
+  if (!text) return;
   navigator.clipboard.writeText(text).then(() => {
     btn.classList.add('copied');
     btn.textContent = '✓ 已复制';
