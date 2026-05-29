@@ -277,6 +277,116 @@ body {
   padding: 24px;
   margin-bottom: 16px;
 }
+
+/* ── Annotated paragraph ── */
+.annotated-para {
+  font-size: 14.5px;
+  line-height: 2;
+  color: var(--text);
+  background: #fffdf5;
+  border: 1.5px solid #f0e0b0;
+  border-radius: 10px;
+  padding: 18px 20px;
+  margin-bottom: 14px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+a.cite-marker {
+  display: inline-block;
+  color: #c0392b;
+  font-weight: 800;
+  font-size: 13px;
+  background: #fdecea;
+  border: 1.5px solid #e8a09a;
+  border-radius: 4px;
+  padding: 0 4px;
+  margin: 0 1px;
+  text-decoration: none;
+  transition: background 0.15s;
+  vertical-align: super;
+  line-height: 1.2;
+}
+a.cite-marker:hover { background: #f5b7b1; }
+.ins-notes { margin-bottom: 14px; }
+.ins-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12.5px;
+  color: #5a7a9a;
+  margin-bottom: 6px;
+  padding: 7px 12px;
+  background: rgba(255,255,255,0.7);
+  border-radius: 7px;
+}
+.ins-ref {
+  font-weight: 800;
+  color: #c0392b;
+  flex-shrink: 0;
+  min-width: 24px;
+}
+.ins-reason { color: #5a7a9a; }
+.annotated-actions { margin-top: 8px; display: flex; gap: 8px; }
+
+/* ── Cite article item ── */
+.cite-article-item { display: flex; gap: 14px; align-items: flex-start; }
+.cite-ref-num {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  background: #c0392b;
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 800;
+  margin-top: 2px;
+}
+.cite-art-body { flex: 1; min-width: 0; }
+.cite-formats { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.cite-format-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: #f7f9fc;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 8px 10px;
+}
+.cite-fmt-label {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  background: var(--primary);
+  color: #fff;
+  padding: 2px 7px;
+  border-radius: 4px;
+  margin-top: 1px;
+  letter-spacing: 0.5px;
+}
+.cite-fmt-text {
+  flex: 1;
+  font-size: 11.5px;
+  color: #444;
+  line-height: 1.6;
+  word-break: break-all;
+}
+.copy-btn-sm {
+  flex-shrink: 0;
+  padding: 3px 10px;
+  background: #fff;
+  border: 1.5px solid var(--primary-light);
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--primary-light);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.copy-btn-sm:hover { background: var(--primary-light); color: #fff; }
 .ai-card-header {
   display: flex;
   align-items: center;
@@ -1669,53 +1779,47 @@ Return ONLY a JSON array like: [3, 7, 1, 12, 5]`;
       }
     }
 
-    // Step 3: Ask AI to generate citation sentences
+    // Step 3: Ask AI to insert citations directly into the paragraph
     const artList = topArts.map((a,i) =>
       `[${i+1}] ${a.title}. ${a.jName} (${a.year}). DOI: ${a.doi}`
     ).join('\n');
 
-    const citationPrompt = `You are an academic writing assistant helping a researcher add citations to their paper. 
+    const citationPrompt = `You are an academic writing assistant. Your task is to INSERT citation markers into the researcher's existing paragraph — do NOT rewrite or rephrase the paragraph content.
 
-The researcher's paragraph (in Chinese or English):
+The researcher's paragraph:
 """
 ${para}
 """
 
-Here are relevant MAP journal articles (published in last 2 years) that can be cited:
+Relevant MAP journal articles that can be cited:
 ${artList}
 
-Task: Write 2 citation sentences in the SAME language as the paragraph that can be naturally inserted after the paragraph to broaden its scope or deepen discussion. Each sentence should:
-- Cite 1-2 of the articles above using "[n]" notation
-- Be academically fluent and specific (not generic)
-- Add real scientific value (a different angle, methodology, or finding)
+Instructions:
+1. Read the paragraph carefully and identify 1-3 sentences where citations would strengthen the claim.
+2. Insert "[n]" citation markers at the END of those sentences (before the period), using the article numbers above.
+3. Return the COMPLETE paragraph with citations inserted. Do not change any other words.
+4. Also return: for each inserted citation, which sentence it was added to (quote the first 10 words of that sentence), and a brief reason why.
 
-Also provide a 1-sentence reason for each citation (why it adds value, e.g., "拓展了讨论广度" / "补充了分子机制视角" / "提供了近期实验支撑").
+Return ONLY valid JSON (no markdown), exactly this format:
+{
+  "annotated": "...full paragraph text with [n] markers inserted...",
+  "insertions": [
+    { "ref": 1, "after": "first 10 words of the sentence where [1] was inserted", "reason": "one sentence explanation" },
+    { "ref": 2, "after": "first 10 words of the sentence where [2] was inserted", "reason": "one sentence explanation" }
+  ]
+}`;
 
-Return ONLY a JSON array (no markdown), like:
-[
-  {
-    "sentence": "...[1].",
-    "reason": "...",
-    "cited": [1]
-  },
-  {
-    "sentence": "...[2].",
-    "reason": "...",
-    "cited": [2]
-  }
-]`;
-
-    const citationResp = await callDeepSeek(citationPrompt, 800);
-    let suggestions = [];
+    const citationResp = await callDeepSeek(citationPrompt, 1200);
+    let citeResult = null;
     try {
-      const match = citationResp.match(/\[[\s\S]*\]/);
-      suggestions = match ? JSON.parse(match[0]) : [];
+      const match = citationResp.match(/\{[\s\S]*\}/);
+      citeResult = match ? JSON.parse(match[0]) : null;
     } catch {
-      suggestions = [];
+      citeResult = null;
     }
 
     // Render
-    resultsDiv.innerHTML = renderCiteResults(suggestions, topArts);
+    resultsDiv.innerHTML = renderCiteResults(citeResult, topArts);
 
   } catch(err) {
     resultsDiv.innerHTML = '<div class="card"><div class="status-msg status-error">出错：' + err.message + '</div></div>';
@@ -1778,54 +1882,105 @@ function renderArticleList(articles, query) {
   </div>`;
 }
 
-function renderCiteResults(suggestions, articles) {
+function renderCiteResults(citeResult, articles) {
   const [y0, y1] = getYearRange();
   let html = '';
 
-  if (suggestions.length > 0) {
-    // AI sentence cards
-    html += `<div class="card">
-      <div class="card-label"><span class="icon">✨</span>推荐引用句子</div>`;
+  // ── Block 1: Annotated paragraph with red highlights ──
+  if (citeResult && citeResult.annotated) {
+    // Highlight [n] markers in red bold, and the sentence they appear in with light red bg
+    let annotated = escHtml(citeResult.annotated);
+    // Highlight citation markers [1],[2],... in red
+    annotated = annotated.replace(/\[(\d+)\]/g, (m, n) => {
+      const idx = parseInt(n) - 1;
+      const art = articles[idx];
+      const url = art ? 'https://www.maxapress.com/article/doi/' + art.doi : '#';
+      return `<a class="cite-marker" href="${url}" target="_blank" title="${art ? escHtml(art.title) : ''}">[${n}]</a>`;
+    });
 
-    for (const sug of suggestions) {
-      // Build sentence with linked citations
-      let sentence = sug.sentence || '';
-      // Replace [n] with actual DOI links
-      sentence = sentence.replace(/\[(\d+)\]/g, (m, n) => {
-        const idx = parseInt(n) - 1;
-        const art = articles[idx];
-        if (!art) return m;
-        const url = 'https://www.maxapress.com/article/doi/' + art.doi;
-        return `<a class="ref-link" href="${url}" target="_blank" title="${art.title}">[${n}]</a>`;
-      });
-
-      const plainText = sug.sentence || '';
-      const esc = plainText.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-      html += `<div class="ai-card">
-        <div class="ai-card-header">
-          <span class="ai-label">AI 推荐句</span>
-          <button class="copy-btn" data-text="${esc}" onclick="copyText(this)">
-            📋 复制
-          </button>
-        </div>
-        <div class="ai-sentence">${sentence}</div>
-        <div class="ai-reason"><strong>引用原因：</strong>${sug.reason || ''}</div>
-      </div>`;
+    // Build insertion notes
+    let insertionNotes = '';
+    if (citeResult.insertions && citeResult.insertions.length > 0) {
+      insertionNotes = citeResult.insertions.map(ins => {
+        const art = articles[ins.ref - 1];
+        const label = art ? `[${ins.ref}] ${escHtml(art.title.slice(0, 60))}…` : `[${ins.ref}]`;
+        return `<div class="ins-note">
+          <span class="ins-ref">[${ins.ref}]</span>
+          <span class="ins-reason">${escHtml(ins.reason || '')}</span>
+        </div>`;
+      }).join('');
     }
-    html += `</div>`;
+
+    // Copy plain text (original annotated without HTML)
+    const plainAnnotated = citeResult.annotated;
+    const escAnnotated = plainAnnotated.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+    html += `<div class="card">
+      <div class="card-label"><span class="icon">✨</span>已加入引用标注的段落</div>
+      <div class="annotated-para">${annotated}</div>
+      ${insertionNotes ? `<div class="ins-notes">${insertionNotes}</div>` : ''}
+      <div class="annotated-actions">
+        <button class="copy-btn" data-text="${escAnnotated}" onclick="copyText(this)">📋 复制带标注的段落</button>
+      </div>
+    </div>`;
   }
 
-  // Referenced articles
-  html += `<div class="card">
-    <div class="articles-header">
-      <div class="articles-title">推荐文章</div>
-      <div class="articles-count">${articles.length} 篇匹配 · ${y0}–${y1} 年</div>
-    </div>
-    ${articles.map(renderArticleItem).join('')}
-    <div class="citation-hint">📝 以上文章均已在 MAP 期刊正式发表，可直接引用。点击标题查看全文。</div>
-  </div>`;
+  // ── Block 2: Referenced articles with citation formats ──
+  if (articles.length > 0) {
+    html += `<div class="card">
+      <div class="articles-header">
+        <div class="articles-title">引用文章详情</div>
+        <div class="articles-count">${articles.length} 篇 · ${y0}–${y1} 年</div>
+      </div>`;
 
+    articles.forEach((a, i) => {
+      const url = 'https://www.maxapress.com/article/doi/' + a.doi;
+      const jUrl = 'https://www.maxapress.com/' + a.jId;
+      const tl = TYPE_LABEL[a.type] || a.type || '研究论文';
+      const tc = TYPE_CSS[a.type]  || 'tag-ARTICLE';
+      // APA format: Author(s). (Year). Title. Journal, Volume(Issue). DOI
+      const apaText = `${a.title}. ${a.jName}. https://doi.org/${a.doi}`;
+      const escApa  = apaText.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      // Vancouver format: [n] Title. Journal Year. doi:DOI
+      const vanText = `[${i+1}] ${a.title}. ${a.jName} ${a.year}${a.volume?';'+a.volume:''}${a.issue?'('+a.issue+')':''}. doi:${a.doi}`;
+      const escVan  = vanText.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+      html += `<div class="article-item cite-article-item">
+        <div class="cite-ref-num">[${i+1}]</div>
+        <div class="cite-art-body">
+          <div class="art-title"><a href="${url}" target="_blank">${escHtml(a.title)}</a></div>
+          <div class="art-meta">
+            <a href="${jUrl}" class="art-journal" target="_blank">${escHtml(a.jName)}</a>
+            <span>${a.year}${a.volume?' · Vol.'+a.volume:''}${a.issue?'('+a.issue+')':''}</span>
+            <span class="art-tag ${tc}">${tl}</span>
+          </div>
+          <div class="cite-formats">
+            <div class="cite-format-row">
+              <span class="cite-fmt-label">APA</span>
+              <span class="cite-fmt-text">${escHtml(apaText)}</span>
+              <button class="copy-btn-sm" data-text="${escApa}" onclick="copyText(this)" title="复制 APA 格式">复制</button>
+            </div>
+            <div class="cite-format-row">
+              <span class="cite-fmt-label">Vancouver</span>
+              <span class="cite-fmt-text">${escHtml(vanText)}</span>
+              <button class="copy-btn-sm" data-text="${escVan}" onclick="copyText(this)" title="复制 Vancouver 格式">复制</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    });
+
+    html += `<div class="citation-hint">📝 点击标题查看全文。引文格式可直接复制粘贴至参考文献列表。</div></div>`;
+  }
+
+  if (!html) {
+    html = renderNoResult('the given paragraph');
+  }
   return html;
+}
+
+function escHtml(str) {
+  return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 function renderNoResult(q) {
