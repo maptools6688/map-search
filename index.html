@@ -387,6 +387,40 @@ a.cite-marker:hover { background: #f5b7b1; }
   white-space: nowrap;
 }
 .copy-btn-sm:hover { background: var(--primary-light); color: #fff; }
+
+/* ── Cite reason ── */
+.cite-reason {
+  font-size: 12.5px;
+  color: #5a7a9a;
+  background: #f0f5fb;
+  border-left: 3px solid var(--primary-light);
+  border-radius: 0 6px 6px 0;
+  padding: 6px 12px;
+  margin: 8px 0 4px;
+  line-height: 1.6;
+}
+.cite-reason-icon {
+  margin-right: 5px;
+}
+
+/* ── RIS download row ── */
+.cite-ris-row { background: #f5f9f5; border-color: #b7d9b7; }
+.cite-fmt-label-ris { background: #2e7d32; }
+.cite-fmt-text-ris { color: #4a6a4a; font-style: italic; }
+.ris-download-btn {
+  flex-shrink: 0;
+  padding: 3px 10px;
+  background: #fff;
+  border: 1.5px solid #2e7d32;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #2e7d32;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.ris-download-btn:hover { background: #2e7d32; color: #fff; }
 .ai-card-header {
   display: flex;
   align-items: center;
@@ -721,7 +755,7 @@ a.cite-marker:hover { background: #f5b7b1; }
 <header class="header">
   <img src="data:image/png;base64,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" class="header-logo" alt="MAP">
   <h1>MAP 文献推荐</h1>
-  <p>粘贴您的段落，智能推荐 MAP 期刊文章，并生成可直接引用的学术句子</p>
+  <p>粘贴您的段落，智能推荐 MAP 期刊文章，AI 自动标注参考文献位置并生成引文格式</p>
 </header>
 
 <!-- Main Content -->
@@ -730,7 +764,7 @@ a.cite-marker:hover { background: #f5b7b1; }
   <!-- Mode Tabs -->
   <div class="mode-tabs">
     <button class="mode-tab active" id="tab-cite" onclick="switchTab('cite')">
-      <span>✍️</span> 段落引用推荐
+      <span>✍️</span> 段落参考文献推荐
     </button>
     <button class="mode-tab" id="tab-search" onclick="switchTab('search')">
       <span>🔍</span> 关键词搜索
@@ -746,7 +780,7 @@ a.cite-marker:hover { background: #f5b7b1; }
       <div class="submit-row">
         <span class="hint-text">支持中英文段落 · 匹配近两年 MAP 期刊文章</span>
         <button class="btn-primary" id="citeBtn" onclick="doCiteSearch()">
-          <span id="citeBtnContent">智能推荐引用</span>
+          <span id="citeBtnContent">智能推荐参考文献</span>
         </button>
       </div>
     </div>
@@ -1702,7 +1736,7 @@ async function doCiteSearch() {
 
   const resultsDiv = document.getElementById('citeResults');
   resultsDiv.style.display = 'block';
-  resultsDiv.innerHTML = '<div class="card" style="text-align:center;padding:28px;color:var(--text-light);font-size:14px;">AI 正在分析段落并检索相关文章…</div>';
+  resultsDiv.innerHTML = '<div class="card" style="text-align:center;padding:28px;color:var(--text-light);font-size:14px;">AI 正在分析段落并检索相关参考文献…</div>';
 
   try {
     // Step 1: Ask AI to extract key topics from the paragraph
@@ -1738,7 +1772,7 @@ Return format example: ["salt stress tolerance", "root development arabidopsis"]
     if (candidateArticles.length === 0) {
       resultsDiv.innerHTML = renderNoResult('the given paragraph');
       btn.disabled = false;
-      bc.textContent = '智能推荐引用';
+      bc.textContent = '智能推荐参考文献';
       return;
     }
 
@@ -1747,7 +1781,7 @@ Return format example: ["salt stress tolerance", "root development arabidopsis"]
     if (candidateArticles.length <= 5) {
       topArts = candidateArticles;
     } else {
-      resultsDiv.innerHTML = '<div class="card" style="text-align:center;padding:28px;color:var(--text-light);font-size:14px;">AI 正在从 ' + candidateArticles.length + ' 篇候选中筛选最匹配的文章…</div>';
+      resultsDiv.innerHTML = '<div class="card" style="text-align:center;padding:28px;color:var(--text-light);font-size:14px;">AI 正在从 ' + candidateArticles.length + ' 篇候选中筛选最匹配的参考文献…</div>';
 
       const candidateList = candidateArticles.map((a,i) =>
         `[${i}] ${a.title}. ${a.jName} (${a.year}). ${a.abstract}`
@@ -1798,14 +1832,14 @@ Instructions:
 1. Read the paragraph carefully and identify 1-3 sentences where citations would strengthen the claim.
 2. Insert "[n]" citation markers at the END of those sentences (before the period), using the article numbers above.
 3. Return the COMPLETE paragraph with citations inserted. Do not change any other words.
-4. Also return: for each inserted citation, which sentence it was added to (quote the first 10 words of that sentence), and a brief reason why.
+4. Also return: for each article [n], write a brief reason IN CHINESE (1-2 sentences) explaining WHY this article supports the paragraph content — focus on what the article contributes (methodology, findings, species, context).
 
 Return ONLY valid JSON (no markdown), exactly this format:
 {
   "annotated": "...full paragraph text with [n] markers inserted...",
   "insertions": [
-    { "ref": 1, "after": "first 10 words of the sentence where [1] was inserted", "reason": "one sentence explanation" },
-    { "ref": 2, "after": "first 10 words of the sentence where [2] was inserted", "reason": "one sentence explanation" }
+    { "ref": 1, "after": "first 10 words of the sentence where [1] was inserted", "reason": "用中文写一句说明该参考文献为何支撑本段论点" },
+    { "ref": 2, "after": "first 10 words of the sentence where [2] was inserted", "reason": "用中文写一句说明该参考文献为何支撑本段论点" }
   ]
 }`;
 
@@ -1825,7 +1859,7 @@ Return ONLY valid JSON (no markdown), exactly this format:
     resultsDiv.innerHTML = '<div class="card"><div class="status-msg status-error">出错：' + err.message + '</div></div>';
   }
   btn.disabled = false;
-  bc.textContent = '智能推荐引用';
+  bc.textContent = '智能推荐参考文献';
 }
 
 // ── Call DeepSeek API (via Cloudflare Worker proxy) ──
@@ -1878,7 +1912,7 @@ function renderArticleList(articles, query) {
       <div class="articles-count">${articles.length} 篇匹配文章 · ${y0}–${y1} 年</div>
     </div>
     ${articles.map(renderArticleItem).join('')}
-    <div class="citation-hint">📝 点击标题查看全文与引用格式，DOI 已标注</div>
+    <div class="citation-hint">📝 点击标题查看全文与引文格式，DOI 已标注</div>
   </div>`;
 }
 
@@ -1898,27 +1932,13 @@ function renderCiteResults(citeResult, articles) {
       return `<a class="cite-marker" href="${url}" target="_blank" title="${art ? escHtml(art.title) : ''}">[${n}]</a>`;
     });
 
-    // Build insertion notes
-    let insertionNotes = '';
-    if (citeResult.insertions && citeResult.insertions.length > 0) {
-      insertionNotes = citeResult.insertions.map(ins => {
-        const art = articles[ins.ref - 1];
-        const label = art ? `[${ins.ref}] ${escHtml(art.title.slice(0, 60))}…` : `[${ins.ref}]`;
-        return `<div class="ins-note">
-          <span class="ins-ref">[${ins.ref}]</span>
-          <span class="ins-reason">${escHtml(ins.reason || '')}</span>
-        </div>`;
-      }).join('');
-    }
-
     // Copy plain text (original annotated without HTML)
     const plainAnnotated = citeResult.annotated;
     const escAnnotated = plainAnnotated.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
     html += `<div class="card">
-      <div class="card-label"><span class="icon">✨</span>已加入引用标注的段落</div>
+      <div class="card-label"><span class="icon">✨</span>已加入参考文献标注的段落</div>
       <div class="annotated-para">${annotated}</div>
-      ${insertionNotes ? `<div class="ins-notes">${insertionNotes}</div>` : ''}
       <div class="annotated-actions">
         <button class="copy-btn" data-text="${escAnnotated}" onclick="copyText(this)">📋 复制带标注的段落</button>
       </div>
@@ -1927,26 +1947,37 @@ function renderCiteResults(citeResult, articles) {
 
   // ── Block 2: Referenced articles with citation formats ──
   if (articles.length > 0) {
+    // Build a map from ref index → reason (from insertions)
+    const reasonMap = {};
+    if (citeResult && citeResult.insertions) {
+      citeResult.insertions.forEach(ins => {
+        if (ins.ref && ins.reason) reasonMap[ins.ref] = ins.reason;
+      });
+    }
+
     html += `<div class="card">
       <div class="articles-header">
-        <div class="articles-title">引用文章详情</div>
+        <div class="articles-title">参考文献详情</div>
         <div class="articles-count">${articles.length} 篇 · ${y0}–${y1} 年</div>
       </div>`;
 
     articles.forEach((a, i) => {
+      const refNum = i + 1;
       const url = 'https://www.maxapress.com/article/doi/' + a.doi;
       const jUrl = 'https://www.maxapress.com/' + a.jId;
       const tl = TYPE_LABEL[a.type] || a.type || '研究论文';
       const tc = TYPE_CSS[a.type]  || 'tag-ARTICLE';
-      // APA format: Author(s). (Year). Title. Journal, Volume(Issue). DOI
+      // APA format
       const apaText = `${a.title}. ${a.jName}. https://doi.org/${a.doi}`;
       const escApa  = apaText.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-      // Vancouver format: [n] Title. Journal Year. doi:DOI
-      const vanText = `[${i+1}] ${a.title}. ${a.jName} ${a.year}${a.volume?';'+a.volume:''}${a.issue?'('+a.issue+')':''}. doi:${a.doi}`;
+      // Vancouver format
+      const vanText = `[${refNum}] ${a.title}. ${a.jName} ${a.year}${a.volume?';'+a.volume:''}${a.issue?'('+a.issue+')':''}. doi:${a.doi}`;
       const escVan  = vanText.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      // Reason (Chinese)
+      const reason = reasonMap[refNum] || '';
 
       html += `<div class="article-item cite-article-item">
-        <div class="cite-ref-num">[${i+1}]</div>
+        <div class="cite-ref-num">[${refNum}]</div>
         <div class="cite-art-body">
           <div class="art-title"><a href="${url}" target="_blank">${escHtml(a.title)}</a></div>
           <div class="art-meta">
@@ -1954,6 +1985,7 @@ function renderCiteResults(citeResult, articles) {
             <span>${a.year}${a.volume?' · Vol.'+a.volume:''}${a.issue?'('+a.issue+')':''}</span>
             <span class="art-tag ${tc}">${tl}</span>
           </div>
+          ${reason ? `<div class="cite-reason"><span class="cite-reason-icon">💡</span>${escHtml(reason)}</div>` : ''}
           <div class="cite-formats">
             <div class="cite-format-row">
               <span class="cite-fmt-label">APA</span>
@@ -1965,12 +1997,25 @@ function renderCiteResults(citeResult, articles) {
               <span class="cite-fmt-text">${escHtml(vanText)}</span>
               <button class="copy-btn-sm" data-text="${escVan}" onclick="copyText(this)" title="复制 Vancouver 格式">复制</button>
             </div>
+            <div class="cite-format-row cite-ris-row">
+              <span class="cite-fmt-label cite-fmt-label-ris">RIS</span>
+              <span class="cite-fmt-text cite-fmt-text-ris">适用于 EndNote、Reference Manager、ProCite 等参考文献管理软件</span>
+              <button class="copy-btn-sm ris-download-btn"
+                data-doi="${escHtml(a.doi)}"
+                data-title="${escHtml(a.title)}"
+                data-jname="${escHtml(a.jName)}"
+                data-year="${a.year||''}"
+                data-volume="${a.volume||''}"
+                data-issue="${a.issue||''}"
+                data-jid="${escHtml(a.jId||'')}"
+                onclick="downloadRis(this)" title="下载 RIS 文件">⬇ 下载</button>
+            </div>
           </div>
         </div>
       </div>`;
     });
 
-    html += `<div class="citation-hint">📝 点击标题查看全文。引文格式可直接复制粘贴至参考文献列表。</div></div>`;
+    html += `<div class="citation-hint">📝 点击标题查看全文。引文格式可直接复制粘贴至参考文献列表，或下载 RIS 文件导入文献管理软件。</div></div>`;
   }
 
   if (!html) {
@@ -2039,6 +2084,42 @@ function copyText(btn) {
     attachChips();
   }
 })();
+
+// ── RIS 下载 ──
+function downloadRis(btn) {
+  const doi    = btn.dataset.doi    || '';
+  const title  = btn.dataset.title  || '';
+  const jname  = btn.dataset.jname  || '';
+  const year   = btn.dataset.year   || '';
+  const volume = btn.dataset.volume || '';
+  const issue  = btn.dataset.issue  || '';
+  // 构造 RIS 格式内容
+  const lines = [
+    'TY  - JOUR',
+    'TI  - ' + title,
+    'JO  - ' + jname,
+    year   ? 'PY  - ' + year   : '',
+    volume ? 'VL  - ' + volume : '',
+    issue  ? 'IS  - ' + issue  : '',
+    doi    ? 'DO  - ' + doi    : '',
+    doi    ? 'UR  - https://doi.org/' + doi : '',
+    'ER  - '
+  ].filter(Boolean).join('\r\n');
+
+  const blob = new Blob([lines], { type: 'application/x-research-info-systems' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = (doi ? doi.replace(/\//g, '_') : 'citation') + '.ris';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  // 按钮反馈
+  const orig = btn.textContent;
+  btn.textContent = '✓ 已下载';
+  setTimeout(() => { btn.textContent = orig; }, 2000);
+}
 </script>
 </body>
 </html>
