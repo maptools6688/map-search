@@ -872,56 +872,56 @@ document.addEventListener('click', e => {
 // MAP Journal Database
 // ============================================================
 const MAP_JOURNALS = [
-  { id:"seedbio", name:"Seed Biology", nameCN:"种子生物学", keywords:["seed","种子","germination","萌发","dormancy","休眠","embryo","胚","endosperm","胚乳","pollen","花粉","flowering","开花","arabidopsis","拟南芥","development","发育","reproduction","生殖","ovule","胚珠","gametophyte","配子体","vigor","活力","priming","引发","salt","salinity","stress","drought","abiotic","biotic","tolerance","resistance","盐","盐胁迫","胁迫","干旱","抗逆","耐盐","逆境","盐碱","cold","heat","heavy metal","重金属","water stress","osmotic","渗透","oxidative","氧化","ros"] },
-  { id:"newcontam", name:"New Contaminants", nameCN:"新污染物", keywords:["contaminant","污染物","environment","环境","pollution","污染","toxic","毒性","microplastic","微塑料","pfas","pops","emerging","新型","risk","风险","water","水","health","健康","exposure","暴露","fate","归趋","degradation","降解","monitoring","监测"] },
-  { id:"tp", name:"Tropical Plants", nameCN:"热带植物", keywords:["tropical","热带","cassava","木薯","banana","香蕉","mango","芒果","coconut","椰子","papaya","木瓜","pineapple","菠萝","rubber","橡胶","palm","棕榈","sugarcane","甘蔗","rattan","藤","spice","香料","tropic","热区","salt","salinity","stress","drought","abiotic","biotic","tolerance","resistance","盐","盐胁迫","胁迫","干旱","抗逆","耐盐","逆境","盐碱","cold","heat","heavy metal","重金属","water stress","osmotic","渗透","oxidative","氧化","ros"] },
-  { id:"forres", name:"Forestry Research", nameCN:"林学研究", keywords:["forest","森林","林业","tree","树木","wood","木材","poplar","杨树","pine","松树","bamboo","竹子","eucalyptus","桉树","oak","橡树","ginkgo","银杏","timber","木材","silviculture","造林","afforestation","植树","deforestation","砍伐","biomass","生物量","canopy","林冠","salt","salinity","stress","drought","abiotic","biotic","tolerance","resistance","盐","盐胁迫","胁迫","干旱","抗逆","耐盐","逆境","盐碱","cold","heat","heavy metal","重金属","water stress","osmotic","渗透","oxidative","氧化","ros"] },
-  { id:"vegres", name:"Vegetable Research", nameCN:"蔬菜研究", keywords:["vegetable","蔬菜","tomato","番茄","cucumber","黄瓜","pepper","辣椒","lettuce","生菜","cabbage","甘蓝","broccoli","西兰花","potato","马铃薯","onion","洋葱","melon","瓜","carrot","胡萝卜","spinach","菠菜","bean","豆类","eggplant","茄子","pumpkin","南瓜","salt","salinity","stress","drought","abiotic","biotic","tolerance","resistance","盐","盐胁迫","胁迫","干旱","抗逆","耐盐","逆境","盐碱","cold","heat","heavy metal","重金属","water stress","osmotic","渗透","oxidative","氧化","ros"] },
-  { id:"opr", name:"Ornamental Plant Research", nameCN:"观赏植物研究", keywords:["ornamental","观赏","flower","花卉","rose","玫瑰","chrysanthemum","菊花","lily","百合","orchid","兰花","petunia","矮牵牛","landscape","园林","cut","flower","鲜切花","pigment","花色","fragrance","花香","peony","牡丹","tulip","郁金香","carnation","康乃馨","salt","salinity","stress","drought","abiotic","biotic","tolerance","resistance","盐","盐胁迫","胁迫","干旱","抗逆","耐盐","逆境","盐碱","cold","heat","heavy metal","重金属","water stress","osmotic","渗透","oxidative","氧化"] },
-  { id:"grares", name:"Grass Research", nameCN:"草学研究", keywords:["grass","草","牧草","forage","饲草","turf","草坪","lawn","草地","pasture","牧场","alfalfa","苜蓿","ryegrass","黑麦草","fescue","羊茅","bermuda","狗牙根","grassland","草原","meadow","草甸","grazing","放牧","salt","salinity","stress","drought","abiotic","biotic","tolerance","resistance","盐","盐胁迫","胁迫","干旱","抗逆","耐盐","逆境","盐碱","cold","heat","heavy metal","重金属","water stress","osmotic","渗透","oxidative","氧化","ros"] },
-  { id:"frures", name:"Fruit Research", nameCN:"果树研究", keywords:["fruit","果实","果树","apple","苹果","grape","葡萄","citrus","柑橘","peach","桃","pear","梨","plum","李","cherry","樱桃","blueberry","蓝莓","strawberry","草莓","kiwifruit","猕猴桃","ginkgo","银杏","orchard","果园","postharvest","采后","salt","salinity","stress","drought","abiotic","biotic","tolerance","resistance","盐","盐胁迫","胁迫","干旱","抗逆","耐盐","逆境","盐碱","cold","heat","heavy metal","重金属","water stress","osmotic","渗透","oxidative","氧化","ros"] },
-  { id:"bpr", name:"Beverage Plant Research", nameCN:"饮料植物研究", keywords:["beverage","饮料","tea","茶","coffee","咖啡","cocoa","可可","caffeine","咖啡因","camellia","山茶","polyphenol","多酚","catechins","儿茶素","brewing","冲泡","flavor","风味","salt","salinity","stress","drought","abiotic","biotic","tolerance","resistance","盐","盐胁迫","胁迫","干旱","抗逆","耐盐","逆境","盐碱","cold","heat","heavy metal","重金属","water stress","osmotic","渗透","oxidative","氧化","ros"] },
-  { id:"cas", name:"Circular Agricultural Systems", nameCN:"循环农业系统", keywords:["circular","循环","agriculture","农业","system","系统","sustainable","可持续","waste","废弃物","nutrient","养分","recycling","回收","soil","土壤","organic","有机","manure","肥料","crop","作物","salt","salinity","stress","drought","abiotic","biotic","tolerance","resistance","盐","盐胁迫","胁迫","干旱","抗逆","耐盐","逆境","盐碱","cold","heat","heavy metal","重金属","water stress","osmotic","渗透","oxidative","氧化","ros"] },
-  { id:"fia", name:"Food Innovation and Advances", nameCN:"食品创新与进展", keywords:["food","食品","innovation","创新","processing","加工","safety","安全","nutrition","营养","quality","品质","preservation","保鲜","packaging","包装","functional","功能","fermented","发酵"] },
-  { id:"fmr", name:"Food Materials Research", nameCN:"食品材料研究", keywords:["food","食品","material","材料","protein","蛋白","starch","淀粉","lipid","脂质","polysaccharide","多糖","packaging","包装","edible","可食","emulsion","乳液","gel","凝胶"] },
-  { id:"sif", name:"Studies in Fungi", nameCN:"真菌研究", keywords:["fungi","真菌","fungus","蘑菇","mushroom","蘑菇","yeast","酵母","taxonomy","分类","mycology","真菌学","mycorrhiza","菌根","pathogen","病原","mold","霉菌","lichen","地衣","salt","salinity","stress","drought","abiotic","biotic","tolerance","resistance","盐","盐胁迫","胁迫","干旱","抗逆","耐盐","逆境","盐碱","cold","heat","heavy metal","重金属","water stress","osmotic","渗透","oxidative","氧化","ros"] },
-  { id:"mpb", name:"Medicinal Plant Biology", nameCN:"药用植物生物学", keywords:["medicinal","药用","plant","植物","herb","草药","herbal","草本","secondary","次生","metabolism","代谢","alkaloid","生物碱","terpenoid","萜类","flavonoid","黄酮","ginseng","人参","compound","化合物","salt","salinity","stress","drought","abiotic","biotic","tolerance","resistance","盐","盐胁迫","胁迫","干旱","抗逆","耐盐","逆境","盐碱","cold","heat","heavy metal","重金属","water stress","osmotic","渗透","oxidative","氧化","ros"] },
-  { id:"mycosphere", name:"Mycosphere", nameCN:"真菌圈", keywords:["fungi","真菌","mycology","真菌学","diversity","多样性","phylogeny","系统发育","taxonomy","分类","evolution","进化","ecology","生态","basidiomycota","担子菌","ascomycota","子囊菌","species","物种","salt","salinity","stress","drought","abiotic","biotic","tolerance","resistance","盐","盐胁迫","胁迫","干旱","抗逆","耐盐","逆境","盐碱","cold","heat","heavy metal","重金属","water stress","osmotic","渗透","oxidative","氧化","ros"] },
-  { id:"panfungi", name:"Panfungi", nameCN:"泛真菌", keywords:["fungi","真菌","pan","泛","genome","基因组","omics","组学","diversity","多样性","evolution","进化","taxonomy","分类","resource","资源","application","应用","salt","salinity","stress","drought","abiotic","biotic","tolerance","resistance","盐","盐胁迫","胁迫","干旱","抗逆","耐盐","逆境","盐碱","cold","heat","heavy metal","重金属","water stress","osmotic","渗透","oxidative","氧化","ros"] },
-  { id:"tihort", name:"Technology in Horticulture", nameCN:"园艺技术", keywords:["horticulture","园艺","technology","技术","greenhouse","温室","cultivation","栽培","irrigation","灌溉","hydroponic","水培","vertical","垂直","smart","智慧","automation","自动化","salt","salinity","stress","drought","abiotic","biotic","tolerance","resistance","盐","盐胁迫","胁迫","干旱","抗逆","耐盐","逆境","盐碱","cold","heat","heavy metal","重金属","water stress","osmotic","渗透","oxidative","氧化","ros"] },
-  { id:"tia", name:"Technology in Agronomy", nameCN:"农艺技术", keywords:["agronomy","农学","technology","技术","precision","精准","agriculture","农业","crop","作物","yield","产量","fertilizer","肥料","irrigation","灌溉","smart","智慧","drone","无人机","salt","salinity","stress","drought","abiotic","biotic","tolerance","resistance","盐","盐胁迫","胁迫","干旱","抗逆","耐盐","逆境","盐碱","cold","heat","heavy metal","重金属","water stress","osmotic","渗透","oxidative","氧化","ros"] },
-  { id:"sse", name:"Soil Science and Environment", nameCN:"土壤科学与环境", keywords:["soil","土壤","science","科学","environment","环境","chemistry","化学","physics","物理","microbiology","微生物","pollution","污染","remediation","修复","organic","有机","carbon","碳","nitrogen","氮"] },
-  { id:"nc", name:"Nitrogen Cycling", nameCN:"氮循环", keywords:["nitrogen","氮","cycling","循环","fixation","固氮","nitrification","硝化","denitrification","反硝化","ammonia","氨","nitrate","硝酸盐","fertilizer","肥料","emission","排放","microorganism","微生物"] },
-  { id:"ph", name:"Plant Hormones", nameCN:"植物激素", keywords:["hormone","激素","auxin","生长素","cytokinin","细胞分裂素","gibberellin","赤霉素","abscisic","脱落酸","ethylene","乙烯","brassinosteroid","油菜素内酯","jasmonic","茉莉酸","salicylic","水杨酸","strigolactone","独脚金内酯","salt","salinity","stress","drought","abiotic","biotic","tolerance","resistance","盐","盐胁迫","胁迫","干旱","抗逆","耐盐","逆境","盐碱","cold","heat","heavy metal","重金属","water stress","osmotic","渗透","oxidative","氧化","ros"] },
-  { id:"scm", name:"Sustainable Carbon Materials", nameCN:"可持续碳材料", keywords:["carbon","碳","material","材料","sustainable","可持续","biomass","生物质","graphene","石墨烯","nanotube","纳米管","biochar","生物炭","activated","活性","adsorption","吸附","energy","能源"] },
-  { id:"bchax", name:"Biochar X", nameCN:"生物炭X", keywords:["biochar","生物炭","pyrolysis","热解","carbon","碳","sequestration","固碳","soil","土壤","amendment","改良","adsorption","吸附","remediation","修复"] },
-  { id:"ebp", name:"Environmental and Biogeochemical Processes", nameCN:"环境与生物地球化学过程", keywords:["environmental","环境","biogeochemical","生物地球化学","process","过程","cycling","循环","element","元素","carbon","碳","nitrogen","氮","phosphorus","磷","trace","微量"] },
-  { id:"een", name:"Energy & Environment Nexus", nameCN:"能源环境关联", keywords:["energy","能源","environment","环境","nexus","关联","climate","气候","low-carbon","低碳","renewable","可再生","solar","太阳","wind","风","policy","政策","emission","排放"] },
-  { id:"dts", name:"Digital Transportation and Safety", nameCN:"数字交通与安全", keywords:["digital","数字","transportation","交通","safety","安全","smart","智能","traffic","交通流","autonomous","自主","vehicle","车辆","big","data","大数据"] },
-  { id:"emst", name:"Emergency Management Science and Technology", nameCN:"应急管理科学与技术", keywords:["emergency","应急","management","管理","disaster","灾害","risk","风险","assessment","评估","response","响应","technology","技术","resilience","韧性"] },
-  { id:"mav", name:"International Journal of Micro Air Vehicles", nameCN:"微小型飞行器", keywords:["micro","微型","air","飞行","vehicle","器","drone","无人机","uav","无人","aerial","空中","flight","飞行","aerodynamic","空气动力","control","控制","design","设计"] },
-  { id:"wpt", name:"Wireless Power Transfer", nameCN:"无线电能传输", keywords:["wireless","无线","power","电能","transfer","传输","charging","充电","microwave","微波","inductive","感应","resonance","谐振","energy","能量","harvesting","采集"] },
-  { id:"ker", name:"The Knowledge Engineering Review", nameCN:"知识工程评论", keywords:["knowledge","知识","engineering","工程","ontology","本体","reasoning","推理","semantic","语义","nlp","自然语言","ai","人工智能","machine","机器学习"] },
-  { id:"prkm", name:"Progress in Reaction Kinetics and Mechanism", nameCN:"反应动力学与机理进展", keywords:["reaction","反应","kinetics","动力学","mechanism","机理","catalysis","催化","theoretical","理论","computational","计算","rate","速率","molecular","分子"] },
-  { id:"stati", name:"Statistics Innovation", nameCN:"统计创新", keywords:["statistics","统计","innovation","创新","data","数据","science","科学","method","方法","analysis","分析","model","模型","inference","推断","bayesian","贝叶斯"] },
-  { id:"pubres", name:"Publishing Research", nameCN:"出版研究", keywords:["publishing","出版","research","研究","academic","学术","open","开放","science","科学","journal","期刊","peer","review","同行评审","ethics","伦理","impact","影响"] },
-  { id:"abd", name:"Agrobiodiversity", nameCN:"农业生物多样性", keywords:["agrobiodiversity","农业生物多样性","germplasm","种质","genetic","遗传","diversity","多样性","conservation","保护","crop","作物","wild","野生","relative","近缘","salt","salinity","stress","drought","abiotic","biotic","tolerance","resistance","盐","盐胁迫","胁迫","干旱","抗逆","耐盐","逆境","盐碱","cold","heat","heavy metal","重金属","water stress","osmotic","渗透","oxidative","氧化","ros"] },
-  { id:"animadv", name:"Animal Advances", nameCN:"动物进展", keywords:["animal","动物","livestock","家畜","breeding","育种","nutrition","营养","health","健康","welfare","福利","genetics","遗传","reproduction","繁殖"] },
-  { id:"aee", name:"Agricultural Ecology and Environment", nameCN:"农业生态与环境", keywords:["agricultural","农业","ecology","生态","environment","环境","ecosystem","生态系统","pollution","污染","carbon","碳","nitrogen","氮","farmland","农田","salt","salinity","stress","drought","abiotic","biotic","tolerance","resistance","盐","盐胁迫","胁迫","干旱","抗逆","耐盐","逆境","盐碱","cold","heat","heavy metal","重金属","water stress","osmotic","渗透","oxidative","氧化","ros"] },
-  { id:"biocontam", name:"Biocontaminant", nameCN:"生物污染物", keywords:["biocontaminant","生物污染物","microbial","微生物","pathogen","病原","antibiotic","抗生素","resistance","抗性","gene","基因","monitoring","监测","risk","风险"] },
-  { id:"ejcc", name:"European Journal of Cancer Care", nameCN:"欧洲癌症护理", keywords:["cancer","癌症","care","护理","oncology","肿瘤","palliative","姑息","nursing","护理","psychology","心理","therapy","治疗","patient","患者"] },
-  { id:"els", name:"Engineering in Life Sciences", nameCN:"生命科学工程", keywords:["engineering","工程","life","生命","science","科学","bioprocess","生物过程","bioreactor","生物反应器","synthetic","合成","biology","生物学","fermentation","发酵","biotech","生物技术"] },
-  { id:"epi", name:"Epigenetics Insights", nameCN:"表观遗传学洞察", keywords:["epigenetics","表观遗传","methylation","甲基化","histone","组蛋白","modification","修饰","chromatin","染色质","non-coding","非编码","rna","dna"] },
-  { id:"gcomm", name:"Genomics Communications", nameCN:"基因组学通讯", keywords:["genomics","基因组","sequencing","测序","genome","基因组","functional","功能","comparative","比较","bioinformatics","生物信息","ngs","高通量","transcriptome","转录组"] },
-  { id:"git", name:"Gastrointestinal Tumors", nameCN:"胃肠道肿瘤", keywords:["gastrointestinal","胃肠道","tumor","肿瘤","cancer","癌症","gastric","胃","colorectal","结直肠","liver","肝","pancreatic","胰腺","molecular","分子","therapy","治疗"] },
-  { id:"jai", name:"Journal of Applied Ichthyology", nameCN:"应用鱼类学", keywords:["fish","鱼","ichthyology","鱼类学","fishery","渔业","aquaculture","水产养殖","biology","生物学","conservation","保护","marine","海洋","freshwater","淡水"] },
-  { id:"jsc", name:"Journal of Smoking Cessation", nameCN:"戒烟研究", keywords:["smoking","吸烟","cessation","戒烟","tobacco","烟草","nicotine","尼古丁","intervention","干预","policy","政策","public","health","公共卫生"] },
-  { id:"jzser", name:"Journal of Zoological Systematics and Evolutionary Research", nameCN:"动物系统学与进化研究", keywords:["zoological","动物","systematic","系统学","evolution","进化","taxonomy","分类","phylogeny","系统发育","biogeography","生物地理","species","物种","diversity","多样性"] },
-  { id:"pedi", name:"Pediatric Diabetes", nameCN:"儿科糖尿病", keywords:["pediatric","儿科","diabetes","糖尿病","type","1","一型","insulin","胰岛素","child","儿童","adolescent","青少年","endocrine","内分泌","autoimmune","自身免疫"] },
-  { id:"smartfor", name:"Smart Forestry", nameCN:"智慧林业", keywords:["smart","智慧","forestry","林业","remote","sensing","遥感","monitoring","监测","big","data","大数据","ai","人工智能","uav","无人机","lidar","激光雷达","salt","salinity","stress","drought","abiotic","biotic","tolerance","resistance","盐","盐胁迫","胁迫","干旱","抗逆","耐盐","逆境","盐碱","cold","heat","heavy metal","重金属","water stress","osmotic","渗透","oxidative","氧化","ros"] },
-  { id:"targetome", name:"Targetome", nameCN:"靶向组学", keywords:["target","靶点","drug","药物","therapy","治疗","discovery","发现","screening","筛选","pharmacology","药理学","molecular","分子","docking","对接"] },
-  { id:"vns", name:"Visual Neuroscience", nameCN:"视觉神经科学", keywords:["visual","视觉","neuroscience","神经科学","retina","视网膜","cortex","皮层","perception","感知","eye","眼","vision","视力","neural","神经"] },
-  { id:"fra", name:"Forestry Research Advances", nameCN:"林业研究进展", keywords:["forest","森林","forestry","林业","advances","进展","management","经营","ecology","生态","conservation","保护","ecosystem","生态系统","service","服务","salt","salinity","stress","drought","abiotic","biotic","tolerance","resistance","盐","盐胁迫","胁迫","干旱","抗逆","耐盐","逆境","盐碱","cold","heat","heavy metal","重金属","water stress","osmotic","渗透","oxidative","氧化","ros"] }
+  { id:"seedbio", name:"Seed Biology", nameCN:"种子生物学", desc:"研究种子发育、休眠与萌发的分子调控机制，涵盖种子活力、寿命及胁迫耐受性的遗传与表观遗传基础。关注种子引发、包衣等种子技术，研究对象从拟南芥到水稻、大豆等主要农作物。", keywords:["seed","种子","germination","萌发","dormancy","休眠","embryo","胚","endosperm","胚乳","pollen","花粉","flowering","开花","arabidopsis","拟南芥","development","发育","reproduction","生殖","ovule","胚珠","gametophyte","配子体","vigor","活力","priming","引发","salt","salinity","stress","drought","abiotic","biotic","tolerance","resistance","盐","盐胁迫","胁迫","干旱","抗逆","耐盐","逆境","盐碱","cold","heat","heavy metal","重金属","water stress","osmotic","渗透","oxidative","氧化","ros"] },
+  { id:"newcontam", name:"New Contaminants", nameCN:"新污染物", desc:"聚焦新兴污染物的环境行为、生态毒理与健康风险评估。涵盖微塑料、全氟化合物(PFAS)、持久性有机污染物(POPs)等新型污染物的检测方法、环境归趋、生物富集及降解去除技术。", keywords:["contaminant","污染物","environment","环境","pollution","污染","toxic","毒性","microplastic","微塑料","pfas","pops","emerging","新型","risk","风险","water","水","health","健康","exposure","暴露","fate","归趋","degradation","降解","monitoring","监测"] },
+  { id:"tp", name:"Tropical Plants", nameCN:"热带植物", desc:"研究热带与亚热带地区特有植物的生物学特性与遗传改良。涵盖木薯、香蕉、芒果、橡胶树、甘蔗、棕榈等热带作物的基因组学、抗逆育种与栽培技术，关注热带生物多样性保护。", keywords:["tropical","热带","cassava","木薯","banana","香蕉","mango","芒果","coconut","椰子","papaya","木瓜","pineapple","菠萝","rubber","橡胶","palm","棕榈","sugarcane","甘蔗","rattan","藤","spice","香料","tropic","热区","salt","salinity","stress","drought","abiotic","biotic","tolerance","resistance","盐","盐胁迫","胁迫","干旱","抗逆","耐盐","逆境","盐碱","cold","heat","heavy metal","重金属","water stress","osmotic","渗透","oxidative","氧化","ros"] },
+  { id:"forres", name:"Forestry Research", nameCN:"林学研究", desc:"聚焦林木遗传育种、森林生态与可持续经营。涵盖杨树、松树、桉树、竹子、银杏等重要树种的基因组学与分子育种、木材形成调控机制、森林碳汇功能及气候变化适应策略。", keywords:["forest","森林","林业","tree","树木","wood","木材","poplar","杨树","pine","松树","bamboo","竹子","eucalyptus","桉树","oak","橡树","ginkgo","银杏","timber","木材","silviculture","造林","afforestation","植树","deforestation","砍伐","biomass","生物量","canopy","林冠","salt","salinity","stress","drought","abiotic","biotic","tolerance","resistance","盐","盐胁迫","胁迫","干旱","抗逆","耐盐","逆境","盐碱","cold","heat","heavy metal","重金属","water stress","osmotic","渗透","oxidative","氧化","ros"] },
+  { id:"vegres", name:"Vegetable Research", nameCN:"蔬菜研究", desc:"研究蔬菜作物的遗传育种、栽培生理与品质调控。涵盖番茄、黄瓜、辣椒、马铃薯、甘蓝等主要蔬菜的抗病抗逆机制、营养品质形成及设施园艺栽培技术。", keywords:["vegetable","蔬菜","tomato","番茄","cucumber","黄瓜","pepper","辣椒","lettuce","生菜","cabbage","甘蓝","broccoli","西兰花","potato","马铃薯","onion","洋葱","melon","瓜","carrot","胡萝卜","spinach","菠菜","bean","豆类","eggplant","茄子","pumpkin","南瓜","salt","salinity","stress","drought","abiotic","biotic","tolerance","resistance","盐","盐胁迫","胁迫","干旱","抗逆","耐盐","逆境","盐碱","cold","heat","heavy metal","重金属","water stress","osmotic","渗透","oxidative","氧化","ros"] },
+  { id:"opr", name:"Ornamental Plant Research", nameCN:"观赏植物研究", desc:"聚焦观赏植物的花色、花香、花型调控机制及遗传育种。涵盖玫瑰、菊花、百合、兰花、牡丹、郁金香等重要观赏植物的色素代谢途径、花香合成酶基因、花期调控及采后保鲜技术。", keywords:["ornamental","观赏","flower","花卉","rose","玫瑰","chrysanthemum","菊花","lily","百合","orchid","兰花","petunia","矮牵牛","landscape","园林","cut","flower","鲜切花","pigment","花色","fragrance","花香","peony","牡丹","tulip","郁金香","carnation","康乃馨","salt","salinity","stress","drought","abiotic","biotic","tolerance","resistance","盐","盐胁迫","胁迫","干旱","抗逆","耐盐","逆境","盐碱","cold","heat","heavy metal","重金属","water stress","osmotic","渗透","oxidative","氧化"] },
+  { id:"grares", name:"Grass Research", nameCN:"草学研究", desc:"研究牧草、草坪草及草地生态系统的生物学与可持续管理。涵盖苜蓿、黑麦草、羊茅、狗牙根等重要草种的抗逆育种、草地碳氮循环、放牧管理及草坪建植养护技术。", keywords:["grass","草","牧草","forage","饲草","turf","草坪","lawn","草地","pasture","牧场","alfalfa","苜蓿","ryegrass","黑麦草","fescue","羊茅","bermuda","狗牙根","grassland","草原","meadow","草甸","grazing","放牧","salt","salinity","stress","drought","abiotic","biotic","tolerance","resistance","盐","盐胁迫","胁迫","干旱","抗逆","耐盐","逆境","盐碱","cold","heat","heavy metal","重金属","water stress","osmotic","渗透","oxidative","氧化","ros"] },
+  { id:"frures", name:"Fruit Research", nameCN:"果树研究", desc:"聚焦果树作物的遗传育种、果实发育与采后生物学。涵盖苹果、葡萄、柑橘、桃、梨、猕猴桃等主要果树的果实品质形成机制、色泽与香气调控及贮藏保鲜技术。", keywords:["fruit","果实","果树","apple","苹果","grape","葡萄","citrus","柑橘","peach","桃","pear","梨","plum","李","cherry","樱桃","blueberry","蓝莓","strawberry","草莓","kiwifruit","猕猴桃","ginkgo","银杏","orchard","果园","postharvest","采后","salt","salinity","stress","drought","abiotic","biotic","tolerance","resistance","盐","盐胁迫","胁迫","干旱","抗逆","耐盐","逆境","盐碱","cold","heat","heavy metal","重金属","water stress","osmotic","渗透","oxidative","氧化","ros"] },
+  { id:"bpr", name:"Beverage Plant Research", nameCN:"饮料植物研究", desc:"研究茶、咖啡、可可等饮料作物的次生代谢与品质形成。涵盖儿茶素、咖啡因、多酚等特征成分的生物合成途径与调控网络，加工工艺对风味品质的影响及种质资源评价。", keywords:["beverage","饮料","tea","茶","coffee","咖啡","cocoa","可可","caffeine","咖啡因","camellia","山茶","polyphenol","多酚","catechins","儿茶素","brewing","冲泡","flavor","风味","salt","salinity","stress","drought","abiotic","biotic","tolerance","resistance","盐","盐胁迫","胁迫","干旱","抗逆","耐盐","逆境","盐碱","cold","heat","heavy metal","重金属","water stress","osmotic","渗透","oxidative","氧化","ros"] },
+  { id:"cas", name:"Circular Agricultural Systems", nameCN:"循环农业系统", desc:"聚焦农业废弃物的资源化利用与养分循环管理。涵盖有机废弃物堆肥发酵、生物炭土壤改良、农业碳足迹核算及可持续农业系统的设计与综合评价。", keywords:["circular","循环","agriculture","农业","system","系统","sustainable","可持续","waste","废弃物","nutrient","养分","recycling","回收","soil","土壤","organic","有机","manure","肥料","crop","作物","salt","salinity","stress","drought","abiotic","biotic","tolerance","resistance","盐","盐胁迫","胁迫","干旱","抗逆","耐盐","逆境","盐碱","cold","heat","heavy metal","重金属","water stress","osmotic","渗透","oxidative","氧化","ros"] },
+  { id:"fia", name:"Food Innovation and Advances", nameCN:"食品创新与进展", desc:"研究食品加工新技术、食品安全检测及营养功能评价。涵盖新型非热加工技术、功能性食品因子开发、发酵食品微生物及食品品质智能控制。", keywords:["food","食品","innovation","创新","processing","加工","safety","安全","nutrition","营养","quality","品质","preservation","保鲜","packaging","包装","functional","功能","fermented","发酵"] },
+  { id:"fmr", name:"Food Materials Research", nameCN:"食品材料研究", desc:"聚焦食品大分子（蛋白质、淀粉、脂质、多糖）的结构-功能关系。涵盖食品乳液与凝胶体系构建、可食性包装膜材料设计、食品质构调控及活性成分递送系统。", keywords:["food","食品","material","材料","protein","蛋白","starch","淀粉","lipid","脂质","polysaccharide","多糖","packaging","包装","edible","可食","emulsion","乳液","gel","凝胶"] },
+  { id:"sif", name:"Studies in Fungi", nameCN:"真菌研究", desc:"研究真菌的分类学、系统发育、生态功能与生物技术应用。涵盖大型真菌（蘑菇）、酵母菌、霉菌及菌根真菌的资源调查、活性代谢产物挖掘及工业酶制剂开发。", keywords:["fungi","真菌","fungus","蘑菇","mushroom","蘑菇","yeast","酵母","taxonomy","分类","mycology","真菌学","mycorrhiza","菌根","pathogen","病原","mold","霉菌","lichen","地衣","salt","salinity","stress","drought","abiotic","biotic","tolerance","resistance","盐","盐胁迫","胁迫","干旱","抗逆","耐盐","逆境","盐碱","cold","heat","heavy metal","重金属","water stress","osmotic","渗透","oxidative","氧化","ros"] },
+  { id:"mpb", name:"Medicinal Plant Biology", nameCN:"药用植物生物学", desc:"聚焦药用植物的次生代谢产物生物合成与调控，涵盖生物碱、萜类、黄酮、人参皂苷等活性化合物的代谢途径解析。研究传统草药（含中药与民族药）的药效物质基础、道地性形成机制及药用植物种质资源评价。", keywords:["medicinal","药用","plant","植物","herb","草药","herbal","草本","secondary","次生","metabolism","代谢","alkaloid","生物碱","terpenoid","萜类","flavonoid","黄酮","ginseng","人参","compound","化合物","salt","salinity","stress","drought","abiotic","biotic","tolerance","resistance","盐","盐胁迫","胁迫","干旱","抗逆","耐盐","逆境","盐碱","cold","heat","heavy metal","重金属","water stress","osmotic","渗透","oxidative","氧化","ros"] },
+  { id:"mycosphere", name:"Mycosphere", nameCN:"真菌圈", desc:"聚焦真菌多样性与系统发育研究，涵盖担子菌、子囊菌等主要类群的分类修订、分子系统学与进化生物学。关注全球真菌物种资源调查、新分类单元描述及保护真菌学。", keywords:["fungi","真菌","mycology","真菌学","diversity","多样性","phylogeny","系统发育","taxonomy","分类","evolution","进化","ecology","生态","basidiomycota","担子菌","ascomycota","子囊菌","species","物种","salt","salinity","stress","drought","abiotic","biotic","tolerance","resistance","盐","盐胁迫","胁迫","干旱","抗逆","耐盐","逆境","盐碱","cold","heat","heavy metal","重金属","water stress","osmotic","渗透","oxidative","氧化","ros"] },
+  { id:"panfungi", name:"Panfungi", nameCN:"泛真菌", desc:"研究真菌基因组学、泛基因组学及功能基因组学。涵盖真菌比较基因组分析、次生代谢基因簇挖掘、水平基因转移及真菌资源的开发应用。", keywords:["fungi","真菌","pan","泛","genome","基因组","omics","组学","diversity","多样性","evolution","进化","taxonomy","分类","resource","资源","application","应用","salt","salinity","stress","drought","abiotic","biotic","tolerance","resistance","盐","盐胁迫","胁迫","干旱","抗逆","耐盐","逆境","盐碱","cold","heat","heavy metal","重金属","water stress","osmotic","渗透","oxidative","氧化","ros"] },
+  { id:"tihort", name:"Technology in Horticulture", nameCN:"园艺技术", desc:"聚焦园艺作物的智能化栽培技术与设施装备研发。涵盖温室环境智能调控、水培与垂直农业系统、精准灌溉施肥决策及园艺生产自动化管理。", keywords:["horticulture","园艺","technology","技术","greenhouse","温室","cultivation","栽培","irrigation","灌溉","hydroponic","水培","vertical","垂直","smart","智慧","automation","自动化","salt","salinity","stress","drought","abiotic","biotic","tolerance","resistance","盐","盐胁迫","胁迫","干旱","抗逆","耐盐","逆境","盐碱","cold","heat","heavy metal","重金属","water stress","osmotic","渗透","oxidative","氧化","ros"] },
+  { id:"tia", name:"Technology in Agronomy", nameCN:"农艺技术", desc:"研究大田作物的精准农业技术与智慧农艺管理。涵盖遥感监测与作物表型获取、无人机植保与变量施肥、产量预测模型及数字农业决策支持系统。", keywords:["agronomy","农学","technology","技术","precision","精准","agriculture","农业","crop","作物","yield","产量","fertilizer","肥料","irrigation","灌溉","smart","智慧","drone","无人机","salt","salinity","stress","drought","abiotic","biotic","tolerance","resistance","盐","盐胁迫","胁迫","干旱","抗逆","耐盐","逆境","盐碱","cold","heat","heavy metal","重金属","water stress","osmotic","渗透","oxidative","氧化","ros"] },
+  { id:"sse", name:"Soil Science and Environment", nameCN:"土壤科学与环境", desc:"聚焦土壤物理、化学与生物学过程及其环境效应。涵盖土壤有机碳动态与固碳潜力、养分循环与面源污染、土壤重金属与有机污染物修复及土壤微生物生态学。", keywords:["soil","土壤","science","科学","environment","环境","chemistry","化学","physics","物理","microbiology","微生物","pollution","污染","remediation","修复","organic","有机","carbon","碳","nitrogen","氮"] },
+  { id:"nc", name:"Nitrogen Cycling", nameCN:"氮循环", desc:"研究全球氮循环的生物地球化学过程与调控机制。涵盖生物固氮、硝化-反硝化过程、氨挥发与氮淋溶损失、农田氮素管理及农业温室气体减排策略。", keywords:["nitrogen","氮","cycling","循环","fixation","固氮","nitrification","硝化","denitrification","反硝化","ammonia","氨","nitrate","硝酸盐","fertilizer","肥料","emission","排放","microorganism","微生物"] },
+  { id:"ph", name:"Plant Hormones", nameCN:"植物激素", desc:"聚焦植物激素的生物合成、信号转导与生理功能调控网络。涵盖生长素、细胞分裂素、赤霉素、脱落酸、乙烯、油菜素内酯、茉莉酸、水杨酸及独脚金内酯的代谢途径、转运机制及激素互作。", keywords:["hormone","激素","auxin","生长素","cytokinin","细胞分裂素","gibberellin","赤霉素","abscisic","脱落酸","ethylene","乙烯","brassinosteroid","油菜素内酯","jasmonic","茉莉酸","salicylic","水杨酸","strigolactone","独脚金内酯","salt","salinity","stress","drought","abiotic","biotic","tolerance","resistance","盐","盐胁迫","胁迫","干旱","抗逆","耐盐","逆境","盐碱","cold","heat","heavy metal","重金属","water stress","osmotic","渗透","oxidative","氧化","ros"] },
+  { id:"scm", name:"Sustainable Carbon Materials", nameCN:"可持续碳材料", desc:"研究生物质基可持续碳材料的制备、结构调控与应用。涵盖石墨烯、碳纳米管、生物炭、活性炭等功能碳材料的绿色合成方法及其在能源存储、吸附分离、催化等领域的应用。", keywords:["carbon","碳","material","材料","sustainable","可持续","biomass","生物质","graphene","石墨烯","nanotube","纳米管","biochar","生物炭","activated","活性","adsorption","吸附","energy","能源"] },
+  { id:"bchax", name:"Biochar X", nameCN:"生物炭X", desc:"聚焦生物炭的制备工艺优化、理化性质表征与环境应用。涵盖不同农林废弃物原料的热解炭化技术、生物炭对土壤理化性质的改良效果、碳封存潜力评估及污染物吸附去除机制。", keywords:["biochar","生物炭","pyrolysis","热解","carbon","碳","sequestration","固碳","soil","土壤","amendment","改良","adsorption","吸附","remediation","修复"] },
+  { id:"ebp", name:"Environmental and Biogeochemical Processes", nameCN:"环境与生物地球化学过程", desc:"研究碳、氮、磷、硫等生源要素在陆地-水域-大气界面的生物地球化学循环过程。涵盖元素迁移转化的同位素示踪技术、全球变化对生物地球化学循环的影响及环境效应模拟。", keywords:["environmental","环境","biogeochemical","生物地球化学","process","过程","cycling","循环","element","元素","carbon","碳","nitrogen","氮","phosphorus","磷","trace","微量"] },
+  { id:"een", name:"Energy & Environment Nexus", nameCN:"能源环境关联", desc:"聚焦能源系统与生态环境的交互耦合关系。涵盖可再生能源技术全生命周期评价、低碳能源转型政策分析、碳排放核算与碳交易机制及能源-水-土地耦合系统优化。", keywords:["energy","能源","environment","环境","nexus","关联","climate","气候","low-carbon","低碳","renewable","可再生","solar","太阳","wind","风","policy","政策","emission","排放"] },
+  { id:"dts", name:"Digital Transportation and Safety", nameCN:"数字交通与安全", desc:"研究智能交通系统与交通安全技术。涵盖自动驾驶感知与决策、车路协同通信、交通大数据挖掘与预测、交通安全风险评估及智能交通管控策略。", keywords:["digital","数字","transportation","交通","safety","安全","smart","智能","traffic","交通流","autonomous","自主","vehicle","车辆","big","data","大数据"] },
+  { id:"emst", name:"Emergency Management Science and Technology", nameCN:"应急管理科学与技术", desc:"聚焦自然灾害与突发事件的应急管理理论与技术方法。涵盖灾害风险评估与监测预警、应急资源配置与调度优化、韧性城市建设及大数据驱动的智慧应急决策。", keywords:["emergency","应急","management","管理","disaster","灾害","risk","风险","assessment","评估","response","响应","technology","技术","resilience","韧性"] },
+  { id:"mav", name:"International Journal of Micro Air Vehicles", nameCN:"微小型飞行器", desc:"研究微型飞行器的空气动力学设计、飞控系统与自主导航。涵盖仿生扑翼与旋翼微型飞行器、低雷诺数气动机理、微型传感器集成及集群协同控制。", keywords:["micro","微型","air","飞行","vehicle","器","drone","无人机","uav","无人","aerial","空中","flight","飞行","aerodynamic","空气动力","control","控制","design","设计"] },
+  { id:"wpt", name:"Wireless Power Transfer", nameCN:"无线电能传输", desc:"聚焦无线电能传输的理论研究与技术开发。涵盖磁感应耦合式、磁谐振式及微波传能技术，应用于电动汽车无线充电、植入式医疗器械供电及消费电子等领域。", keywords:["wireless","无线","power","电能","transfer","传输","charging","充电","microwave","微波","inductive","感应","resonance","谐振","energy","能量","harvesting","采集"] },
+  { id:"ker", name:"The Knowledge Engineering Review", nameCN:"知识工程评论", desc:"研究知识表示、推理与管理的理论与方法。涵盖本体工程与语义网、知识图谱构建与推理、自然语言处理、机器学习在知识工程中的应用及智能决策支持系统。", keywords:["knowledge","知识","engineering","工程","ontology","本体","reasoning","推理","semantic","语义","nlp","自然语言","ai","人工智能","machine","机器学习"] },
+  { id:"prkm", name:"Progress in Reaction Kinetics and Mechanism", nameCN:"反应动力学与机理进展", desc:"聚焦化学反应的动力学理论、机理研究与计算模拟。涵盖催化反应微观机理、反应速率理论、分子动力学模拟、密度泛函理论计算及反应网络自动探索方法。", keywords:["reaction","反应","kinetics","动力学","mechanism","机理","catalysis","催化","theoretical","理论","computational","计算","rate","速率","molecular","分子"] },
+  { id:"stati", name:"Statistics Innovation", nameCN:"统计创新", desc:"研究统计方法创新及其在数据科学中的应用。涵盖贝叶斯统计推断、高维数据分析方法、机器学习统计理论、因果推断方法及临床试验设计与分析。", keywords:["statistics","统计","innovation","创新","data","数据","science","科学","method","方法","analysis","分析","model","模型","inference","推断","bayesian","贝叶斯"] },
+  { id:"pubres", name:"Publishing Research", nameCN:"出版研究", desc:"聚焦学术出版的理论研究与实践创新。涵盖开放科学与开放获取模式、同行评议机制优化、学术影响力评价指标、出版伦理规范及数字出版与AI辅助出版技术。", keywords:["publishing","出版","research","研究","academic","学术","open","开放","science","科学","journal","期刊","peer","review","同行评审","ethics","伦理","impact","影响"] },
+  { id:"abd", name:"Agrobiodiversity", nameCN:"农业生物多样性", desc:"研究农业生物多样性的保护、评价与可持续利用。涵盖作物种质资源的遗传多样性分析、作物野生近缘种的保护利用、农家品种的传统知识记录及气候变化对农业生物多样性的影响。", keywords:["agrobiodiversity","农业生物多样性","germplasm","种质","genetic","遗传","diversity","多样性","conservation","保护","crop","作物","wild","野生","relative","近缘","salt","salinity","stress","drought","abiotic","biotic","tolerance","resistance","盐","盐胁迫","胁迫","干旱","抗逆","耐盐","逆境","盐碱","cold","heat","heavy metal","重金属","water stress","osmotic","渗透","oxidative","氧化","ros"] },
+  { id:"animadv", name:"Animal Advances", nameCN:"动物进展", desc:"聚焦家畜家禽的遗传育种、营养调控与健康管理。涵盖动物基因组选择育种、肠道微生物与精准营养、重大疫病防控、动物福利评估及智慧牧场管理。", keywords:["animal","动物","livestock","家畜","breeding","育种","nutrition","营养","health","健康","welfare","福利","genetics","遗传","reproduction","繁殖"] },
+  { id:"aee", name:"Agricultural Ecology and Environment", nameCN:"农业生态与环境", desc:"研究农业生态系统的结构、功能与环境效应。涵盖农田生态系统碳氮水循环、农业面源污染控制、生态农业模式设计及农业景观生物多样性维持机制。", keywords:["agricultural","农业","ecology","生态","environment","环境","ecosystem","生态系统","pollution","污染","carbon","碳","nitrogen","氮","farmland","农田","salt","salinity","stress","drought","abiotic","biotic","tolerance","resistance","盐","盐胁迫","胁迫","干旱","抗逆","耐盐","逆境","盐碱","cold","heat","heavy metal","重金属","water stress","osmotic","渗透","oxidative","氧化","ros"] },
+  { id:"biocontam", name:"Biocontaminant", nameCN:"生物污染物", desc:"聚焦生物污染物的检测、风险评估与控制技术。涵盖病原微生物、抗生素抗性基因(ARGs)、生物气溶胶等生物污染物的环境传播规律、健康风险及消减策略。", keywords:["biocontaminant","生物污染物","microbial","微生物","pathogen","病原","antibiotic","抗生素","resistance","抗性","gene","基因","monitoring","监测","risk","风险"] },
+  { id:"ejcc", name:"European Journal of Cancer Care", nameCN:"欧洲癌症护理", desc:"研究癌症护理的理论、实践与服务模式创新。涵盖肿瘤患者的症状管理、姑息治疗与临终关怀、癌症幸存者的长期健康管理及肿瘤护理的心理社会支持。", keywords:["cancer","癌症","care","护理","oncology","肿瘤","palliative","姑息","nursing","护理","psychology","心理","therapy","治疗","patient","患者"] },
+  { id:"els", name:"Engineering in Life Sciences", nameCN:"生命科学工程", desc:"聚焦生命科学领域的工程化技术与应用。涵盖生物过程工程与生物反应器设计、合成生物学与代谢工程、工业发酵优化及生物制造过程放大。", keywords:["engineering","工程","life","生命","science","科学","bioprocess","生物过程","bioreactor","生物反应器","synthetic","合成","biology","生物学","fermentation","发酵","biotech","生物技术"] },
+  { id:"epi", name:"Epigenetics Insights", nameCN:"表观遗传学洞察", desc:"研究表观遗传调控的分子机制与功能。涵盖DNA甲基化、组蛋白修饰、染色质重塑及非编码RNA的表观调控网络，关注表观遗传在发育、疾病与环境响应中的作用。", keywords:["epigenetics","表观遗传","methylation","甲基化","histone","组蛋白","modification","修饰","chromatin","染色质","non-coding","非编码","rna","dna"] },
+  { id:"gcomm", name:"Genomics Communications", nameCN:"基因组学通讯", desc:"聚焦基因组学研究的前沿技术与应用。涵盖高通量测序技术、基因组组装与注释、比较基因组学、功能基因组学、转录组学及生物信息学分析方法。", keywords:["genomics","基因组","sequencing","测序","genome","基因组","functional","功能","comparative","比较","bioinformatics","生物信息","ngs","高通量","transcriptome","转录组"] },
+  { id:"git", name:"Gastrointestinal Tumors", nameCN:"胃肠道肿瘤", desc:"研究胃肠道肿瘤的分子机制、诊断与治疗策略。涵盖胃癌、结直肠癌、肝癌、胰腺癌等的分子分型、肿瘤微环境、免疫治疗及靶向治疗。", keywords:["gastrointestinal","胃肠道","tumor","肿瘤","cancer","癌症","gastric","胃","colorectal","结直肠","liver","肝","pancreatic","胰腺","molecular","分子","therapy","治疗"] },
+  { id:"jai", name:"Journal of Applied Ichthyology", nameCN:"应用鱼类学", desc:"聚焦鱼类生物学基础与应用研究。涵盖鱼类分类学与系统发育、渔业资源评估与管理、水产养殖遗传改良、鱼类生理生态及海洋与淡水鱼类保护。", keywords:["fish","鱼","ichthyology","鱼类学","fishery","渔业","aquaculture","水产养殖","biology","生物学","conservation","保护","marine","海洋","freshwater","淡水"] },
+  { id:"jsc", name:"Journal of Smoking Cessation", nameCN:"戒烟研究", desc:"研究戒烟的行为干预、药物治疗与公共卫生政策。涵盖尼古丁成瘾机制、戒烟药物疗效评价、行为与心理干预方法及烟草控制政策的效果评估。", keywords:["smoking","吸烟","cessation","戒烟","tobacco","烟草","nicotine","尼古丁","intervention","干预","policy","政策","public","health","公共卫生"] },
+  { id:"jzser", name:"Journal of Zoological Systematics and Evolutionary Research", nameCN:"动物系统学与进化研究", desc:"聚焦动物系统分类学与进化生物学研究。涵盖动物物种的形态与分子系统学、系统发育重建、生物地理学、物种形成机制及全球动物多样性编目。", keywords:["zoological","动物","systematic","系统学","evolution","进化","taxonomy","分类","phylogeny","系统发育","biogeography","生物地理","species","物种","diversity","多样性"] },
+  { id:"pedi", name:"Pediatric Diabetes", nameCN:"儿科糖尿病", desc:"研究儿童与青少年糖尿病的发病机制、临床管理及并发症防治。涵盖1型与2型糖尿病的遗传与环境因素、胰岛素治疗优化、血糖监测技术及患儿家庭支持。", keywords:["pediatric","儿科","diabetes","糖尿病","type","1","一型","insulin","胰岛素","child","儿童","adolescent","青少年","endocrine","内分泌","autoimmune","自身免疫"] },
+  { id:"smartfor", name:"Smart Forestry", nameCN:"智慧林业", desc:"聚焦智慧林业的理论、技术与应用。涵盖森林资源遥感监测与激光雷达技术、林业大数据与人工智能、森林火灾与病虫害智能预警及精准林业管理。", keywords:["smart","智慧","forestry","林业","remote","sensing","遥感","monitoring","监测","big","data","大数据","ai","人工智能","uav","无人机","lidar","激光雷达","salt","salinity","stress","drought","abiotic","biotic","tolerance","resistance","盐","盐胁迫","胁迫","干旱","抗逆","耐盐","逆境","盐碱","cold","heat","heavy metal","重金属","water stress","osmotic","渗透","oxidative","氧化","ros"] },
+  { id:"targetome", name:"Targetome", nameCN:"靶向组学", desc:"聚焦药物靶点的系统发现、验证与调控机制。涵盖靶点高通量筛选技术、分子对接与计算机辅助药物设计、药物-靶点相互作用网络分析及多组学整合的靶点识别策略。", keywords:["target","靶点","drug","药物","therapy","治疗","discovery","发现","screening","筛选","pharmacology","药理学","molecular","分子","docking","对接"] },
+  { id:"vns", name:"Visual Neuroscience", nameCN:"视觉神经科学", desc:"研究视觉系统的神经生物学机制。涵盖视网膜信息处理、视觉皮层功能组织、视觉感知的神经基础、视觉发育与可塑性及视觉障碍的神经机制。", keywords:["visual","视觉","neuroscience","神经科学","retina","视网膜","cortex","皮层","perception","感知","eye","眼","vision","视力","neural","神经"] },
+  { id:"fra", name:"Forestry Research Advances", nameCN:"林业研究进展", desc:"聚焦林业科学前沿进展与可持续森林经营。涵盖森林生态系统服务功能评估、天然林保护与次生林恢复、森林生物多样性监测及林业应对气候变化的适应性管理。", keywords:["forest","森林","forestry","林业","advances","进展","management","经营","ecology","生态","conservation","保护","ecosystem","生态系统","service","服务","salt","salinity","stress","drought","abiotic","biotic","tolerance","resistance","盐","盐胁迫","胁迫","干旱","抗逆","耐盐","逆境","盐碱","cold","heat","heavy metal","重金属","water stress","osmotic","渗透","oxidative","氧化","ros"] }
 ];
 
 // ============================================================
@@ -1739,35 +1739,90 @@ async function doCiteSearch() {
   resultsDiv.innerHTML = '<div class="card" style="text-align:center;padding:28px;color:var(--text-light);font-size:14px;">AI 正在分析段落并检索相关参考文献…</div>';
 
   try {
-    // Step 1: Ask AI to extract key topics from the paragraph
-    const extractPrompt = `You are a research assistant. Read the following paragraph and extract 2-3 concise English search queries (each 2-4 words) that capture the core scientific topics discussed. Return ONLY a JSON array of strings, no explanation.
+    // ── Build journal index for AI (id + name + nameCN + research scope description) ──
+    const journalIndex = MAP_JOURNALS.map(j =>
+      `- ${j.id}: ${j.name}${j.nameCN?' ('+j.nameCN+')':''}\n  ${j.desc || j.keywords.slice(0,8).join(', ')}`
+    ).join('\n');
+
+    // Step 1: AI selects relevant journals AND extracts search queries
+    const extractPrompt = `You are a research assistant. MAP publishes these academic journals. Read each journal's research scope description carefully:
+
+${journalIndex}
+
+Given the following paragraph, do two things:
+1. Identify 3-5 MAP journals from the list above that are MOST topically relevant to the paragraph. Match the paragraph's research subject to each journal's scope description — do NOT rely on surface-level keyword overlap. Consider: what is the core research question? which journals actually study this topic?
+2. Extract 2-3 concise English search queries (2-4 words each) to find articles within the selected journals.
 
 Paragraph:
 """
 ${para}
 """
 
-Return format example: ["salt stress tolerance", "root development arabidopsis"]`;
+Return ONLY valid JSON (no markdown, no extra text):
+{
+  "queries": ["query1", "query2", "query3"],
+  "journals": ["id1", "id2", "id3"]
+}`;
 
-    const extractResp = await callDeepSeek(extractPrompt, 200);
+    const extractResp = await callDeepSeek(extractPrompt, 400);
     let queries = [];
+    let selectedJournals = [];
     try {
-      const match = extractResp.match(/\[[\s\S]*?\]/);
-      queries = match ? JSON.parse(match[0]) : [para.slice(0, 80)];
+      const match = extractResp.match(/\{[\s\S]*\}/);
+      if (match) {
+        const parsed = JSON.parse(match[0]);
+        queries = parsed.queries || [];
+        selectedJournals = parsed.journals || [];
+      }
     } catch {
-      queries = [para.slice(0, 80)];
+      // fallback: use raw paragraph as query, search all
+    }
+    if (!queries.length) queries = [para.slice(0, 80)];
+    // Validate that selected journals exist in MAP_JOURNALS
+    const validIds = new Set(MAP_JOURNALS.map(j => j.id));
+    selectedJournals = [...new Set(selectedJournals)].filter(id => validIds.has(id));
+    // If AI didn't pick any journals, fall back to keyword-based findArticles
+    if (!selectedJournals.length) {
+      resultsDiv.innerHTML = '<div class="card" style="text-align:center;padding:28px;color:var(--text-light);font-size:14px;">AI 未能匹配到合适期刊，正在用关键词全平台检索…</div>';
     }
 
-    // Step 2: Fetch matching articles for each query (coarse text match → top 15)
+    // Step 2: Fetch articles from AI-selected journals, then AI semantic ranking
     let candidateArticles = [];
-    for (const q of queries.slice(0, 3)) {
-      const arts = await findArticles(q, 8);
-      for (const a of arts) {
-        if (!candidateArticles.find(x => x.doi === a.doi)) candidateArticles.push(a);
+    if (selectedJournals.length > 0) {
+      for (const jId of selectedJournals) {
+        let arts = await fetchArticles(jId);
+        if (!arts || !arts.length) continue;
+        // Take up to 15 per journal to keep AI prompt manageable
+        arts = arts.slice(0, 15);
+        const jObj = MAP_JOURNALS.find(x => x.id === jId);
+        for (const art of arts) {
+          const title = stripHtml(art.titleEn);
+          const ab = stripHtml(art.abstractinfoEn);
+          if (!title) continue;
+          candidateArticles.push({
+            title, abstract: ab.slice(0, 400), doi: art.doi,
+            jId, jName: jObj ? jObj.name : jId,
+            year: art.year, volume: art.volume, issue: art.issue,
+            type: art.classifyinfoEn || 'ARTICLE'
+          });
+        }
       }
     }
-    candidateArticles.sort((a,b) => b.score - a.score);
-    candidateArticles = candidateArticles.slice(0, 15);
+
+    // Cap at 80 to avoid overwhelming AI
+    if (candidateArticles.length > 80) {
+      candidateArticles = candidateArticles.slice(0, 80);
+    }
+
+    // Fallback: if no articles from AI-selected journals, do broad findArticles
+    if (candidateArticles.length === 0) {
+      for (const q of queries.slice(0, 3)) {
+        const arts = await findArticles(q, 6);
+        for (const a of arts) {
+          if (!candidateArticles.find(x => x.doi === a.doi)) candidateArticles.push(a);
+        }
+      }
+    }
 
     if (candidateArticles.length === 0) {
       resultsDiv.innerHTML = renderNoResult('the given paragraph');
@@ -1776,28 +1831,28 @@ Return format example: ["salt stress tolerance", "root development arabidopsis"]
       return;
     }
 
-    // Step 2.5: AI semantic ranking — let AI pick the 5 most relevant articles
+    // AI semantic ranking — AI picks the 5 most relevant articles
     let topArts;
     if (candidateArticles.length <= 5) {
       topArts = candidateArticles;
     } else {
-      resultsDiv.innerHTML = '<div class="card" style="text-align:center;padding:28px;color:var(--text-light);font-size:14px;">AI 正在从 ' + candidateArticles.length + ' 篇候选中筛选最匹配的参考文献…</div>';
+      resultsDiv.innerHTML = '<div class="card" style="text-align:center;padding:28px;color:var(--text-light);font-size:14px;">AI 正在从 ' + candidateArticles.length + ' 篇候选中语义筛选最匹配的参考文献…</div>';
 
       const candidateList = candidateArticles.map((a,i) =>
         `[${i}] ${a.title}. ${a.jName} (${a.year}). ${a.abstract}`
       ).join('\n\n');
 
-      const rankPrompt = `You are a research assistant. Given a research paragraph and a list of candidate article titles with abstracts, select the 5 articles that are MOST semantically relevant to the paragraph. Consider topic overlap, methodology, species/context, and contribution type. Return ONLY the indices as a JSON array of numbers.
+      const rankPrompt = `You are a research assistant. Given a research paragraph and a list of candidate articles (title + abstract), select the 5 articles that are MOST semantically relevant. Evaluate based on: research topic overlap, methodology fit, species/context relevance, and contribution type. Do NOT rely on simple keyword matching — understand the paragraph's research focus and match it to each article's actual scientific contribution.
 
 Paragraph:
 """
 ${para}
 """
 
-Candidate articles:
+Candidates:
 ${candidateList}
 
-Return ONLY a JSON array like: [3, 7, 1, 12, 5]`;
+Return ONLY a JSON array of indices: [3, 7, 1, 12, 5]`;
 
       const rankResp = await callDeepSeek(rankPrompt, 150);
       try {
