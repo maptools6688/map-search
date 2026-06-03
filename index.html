@@ -1896,18 +1896,23 @@ Return ONLY valid JSON (no markdown, no extra text):
       return;
     }
 
-    // AI semantic ranking — AI picks the 5 most relevant articles
-    let topArts;
-    if (candidateArticles.length <= 5) {
-      topArts = candidateArticles;
-    } else {
-      resultsDiv.innerHTML = '<div class="card" style="text-align:center;padding:28px;color:var(--text-light);font-size:14px;">AI 正在从 ' + candidateArticles.length + ' 篇候选中语义筛选最匹配的参考文献…</div>';
+    // AI semantic ranking — AI picks all genuinely relevant articles (no forced count)
+    // Always run AI verification, even for small candidate pools — don't assume all are relevant
+    resultsDiv.innerHTML = '<div class="card" style="text-align:center;padding:28px;color:var(--text-light);font-size:14px;">AI 正在从 ' + candidateArticles.length + ' 篇候选中验证匹配度并筛选参考文献…</div>';
 
-      const candidateList = candidateArticles.map((a,i) =>
-        `[${i}] ${a.title}. ${a.jName} (${a.year}). ${a.abstract}`
-      ).join('\n\n');
+    const candidateList = candidateArticles.map((a,i) =>
+      `[${i}] ${a.title}. ${a.jName} (${a.year}). ${a.abstract}`
+    ).join('\n\n');
 
-      const rankPrompt = `You are a research assistant. Given a research paragraph and a list of candidate articles (title + abstract), select the 5 articles that are MOST semantically relevant. Evaluate based on: research topic overlap, methodology fit, species/context relevance, and contribution type. Do NOT rely on simple keyword matching — understand the paragraph's research focus and match it to each article's actual scientific contribution.
+    const rankPrompt = `You are a research assistant. Given a research paragraph and a list of candidate articles (title + abstract), select ALL articles that are GENUINELY relevant to the paragraph. 
+
+CRITICAL RULES:
+1. DO NOT force a specific count. Only include articles with real relevance. Quality over quantity.
+2. A focused, single-topic paragraph may genuinely match only 2-3 articles — that's fine.
+3. A rich paragraph with multiple claims may genuinely match 8-12 articles — that's also fine.
+4. If an article is only tangentially related, skip it. Do NOT pad to meet a quota.
+5. Evaluate: research topic overlap, methodology fit, species/context relevance, and scientific contribution type. Go beyond keywords — understand the paragraph's research focus.
+6. IMPORTANT: If the candidate list has only a few articles (e.g., 3-5), still evaluate each one critically — return only those with genuine relevance, even if it means returning just 2 out of 5.
 
 Paragraph:
 """
@@ -1917,20 +1922,30 @@ ${para}
 Candidates:
 ${candidateList}
 
-Return ONLY a JSON array of indices: [3, 7, 1, 12, 5]`;
+Return ONLY a JSON array of indices, ordered by relevance (most relevant first): [3, 7, 1, ...] — the array length reflects how many are truly relevant. If none match, return [].`;
 
-      const rankResp = await callDeepSeek(rankPrompt, 150);
-      try {
-        const match = rankResp.match(/\[[\s\S]*?\]/);
-        const rankedIndices = match ? JSON.parse(match[0]) : [];
-        if (rankedIndices.length > 0) {
-          topArts = rankedIndices.map(i => candidateArticles[i]).filter(Boolean).slice(0, 5);
-        } else {
-          topArts = candidateArticles.slice(0, 5);
-        }
-      } catch {
+    const rankResp = await callDeepSeek(rankPrompt, 300);
+    let topArts;
+    try {
+      const match = rankResp.match(/\[[\s\S]*?\]/);
+      const rankedIndices = match ? JSON.parse(match[0]) : [];
+      if (rankedIndices.length > 0) {
+        // Use all genuinely relevant articles AI returned, cap at 15
+        topArts = rankedIndices.map(i => candidateArticles[i]).filter(Boolean).slice(0, 15);
+      } else {
+        // AI returned empty — fall back to articleScore top 5
         topArts = candidateArticles.slice(0, 5);
       }
+    } catch {
+      // AI parse failed — fall back to articleScore top 5
+      topArts = candidateArticles.slice(0, 5);
+    }
+
+    // Floor: if too few articles and we have more candidates, supplement with articleScore
+    if (topArts.length < 3 && candidateArticles.length > topArts.length) {
+      const existingDois = new Set(topArts.map(a => a.doi));
+      const extraArts = candidateArticles.filter(a => !existingDois.has(a.doi)).slice(0, 5 - topArts.length);
+      topArts = topArts.concat(extraArts);
     }
 
     // Step 3: Ask AI to insert citations directly into the paragraph
@@ -1949,7 +1964,7 @@ Relevant MAP journal articles that can be cited:
 ${artList}
 
 Instructions:
-1. Read the paragraph carefully and identify 1-3 sentences where citations would strengthen the claim.
+1. Read the paragraph carefully and identify sentences or claims where a citation would strengthen the argument. Cite wherever it genuinely helps — don't force a specific count.
 2. Insert "[n]" citation markers at the END of those sentences (before the period), using the article numbers above.
 3. Return the COMPLETE paragraph with citations inserted. Do not change any other words.
 4. Also return: for each article [n], write a brief reason IN CHINESE (1-2 sentences) explaining WHY this article supports the paragraph content — focus on what the article contributes (methodology, findings, species, context).
@@ -1963,7 +1978,7 @@ Return ONLY valid JSON (no markdown), exactly this format:
   ]
 }`;
 
-    const citationResp = await callDeepSeek(citationPrompt, 1200);
+    const citationResp = await callDeepSeek(citationPrompt, 1800);
     let citeResult = null;
     try {
       const match = citationResp.match(/\{[\s\S]*\}/);
