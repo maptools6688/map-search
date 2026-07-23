@@ -235,6 +235,21 @@ body {
   gap: 12px;
 }
 .hint-text { font-size: 12px; color: var(--text-light); }
+
+/* ── Cite journal limiter row ── */
+.cite-journal-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+.cite-journal-label { font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; }
+.cite-journal-sub { font-size: 12px; color: var(--text-light); }
+@media (max-width: 760px) {
+  .cite-journal-row { gap: 8px; }
+  .cite-journal-sub { width: 100%; }
+}
 .btn-primary {
   padding: 11px 30px;
   background: var(--primary);
@@ -529,6 +544,10 @@ a.cite-marker:hover { background: #f5b7b1; }
 .tag-LETTER { background: #fdfefe; color: #707b7c; border: 1px solid #ccc; }
 .tag-SHORT { background: #eafaf1; color: #1a8a4a; }
 .art-doi { font-size: 10.5px; color: #aab; margin-left: auto; }
+.match-badge { font-size: 10px; font-weight: 700; padding: 1px 8px; border-radius: 10px; white-space: nowrap; }
+.rel-high { background: #d4efdf; color: #1e8449; }
+.rel-mid  { background: #fdebd0; color: #b9770e; }
+.rel-low  { background: #f2f3f4; color: #909497; }
 
 /* ── Search Panel ── */
 .search-row {
@@ -777,8 +796,19 @@ a.cite-marker:hover { background: #f5b7b1; }
       <div class="card-label"><span class="icon">📄</span>粘贴您正在撰写的段落</div>
       <textarea class="para-textarea" id="paraInput"
         placeholder="在此粘贴论文段落…"></textarea>
+      <div class="cite-journal-row">
+        <span class="cite-journal-label">🎯 限定期刊（可选）</span>
+        <div class="journal-select-wrap" id="journalWrapCite">
+          <button type="button" class="journal-trigger" onclick="toggleCiteJournalDrop(event)">
+            <span id="journalTextCite">全部期刊</span>
+            <span class="arrow">▼</span>
+          </button>
+          <div class="journal-dropdown" id="journalDropdownCite"></div>
+        </div>
+        <span class="cite-journal-sub">只从选定期刊推荐参考文献；留空则智能匹配全平台</span>
+      </div>
       <div class="submit-row">
-        <span class="hint-text">支持中英文段落 · 匹配近两年 MAP 期刊文章</span>
+        <span class="hint-text">支持中英文段落 · 匹配 2024 年至今 MAP 期刊文章</span>
         <button class="btn-primary" id="citeBtn" onclick="doCiteSearch()">
           <span id="citeBtnContent">智能推荐参考文献</span>
         </button>
@@ -793,7 +823,7 @@ a.cite-marker:hover { background: #f5b7b1; }
   <!-- Panel B: Keyword Search -->
   <div class="panel" id="panel-search">
     <div class="card">
-      <div class="card-label"><span class="icon">🔍</span>关键词检索</div>
+      <div class="card-label"><span class="icon">🔍</span>关键词检索 <span id="proxy-status" style="font-size:11px;font-weight:400;opacity:0.6;margin-left:8px;">🟡 检测中…</span></div>
       <div style="position:relative;">
         <div class="search-row">
           <input type="text" class="search-input" id="searchInput"
@@ -846,13 +876,94 @@ a.cite-marker:hover { background: #f5b7b1; }
 
 <script>
 // ============================================================
-// CONFIG — Cloudflare Worker Proxy URL (handles MAP API + DeepSeek API)
+// CONFIG — Proxy fallback chain with auto-detection
 // ============================================================
-const DEFAULT_PROXY = 'https://map-proxy.guxiaoxiao682.workers.dev';
+//
+// The tool needs a proxy because MAP API doesn't support CORS.
+// When the primary proxy (Cloudflare Worker) is down (common in China),
+// the system automatically tries backup proxies in order.
+//
+// Each proxy in PROXY_CHAIN must implement two endpoints:
+//   POST /api/articles?publisherId=X&limit=N&pageNum=P  →  MAP article list
+//   POST /api/deepseek                                   →  DeepSeek LLM
+// Both accept Content-Type: application/json with body '{}'.
+//
+
+const PROXY_CHAIN = [
+  // Primary: Cloudflare Worker
+  'https://map-proxy.guxiaoxiao682.workers.dev',
+];
+
+const MAP_API_BASE = 'https://www.maxapress.com/data/article/latest-issue-articles';
 
 let CFG = {
-  proxyUrl: localStorage.getItem('map_proxy_url') || DEFAULT_PROXY,
+  // User can override via localStorage key "map_proxy_url"
+  proxyUrl: localStorage.getItem('map_proxy_url') || PROXY_CHAIN[0],
+  // Auto-detected working proxy index (cached)
+  _workingProxyIdx: parseInt(localStorage.getItem('map_working_idx') || '0', 10),
 };
+
+// ── Proxy health check & auto-switch ──
+// Tests each proxy in chain, returns the first one that responds within timeout.
+// Caches the result so we don't re-test on every search.
+let _proxyTested = false;
+async function detectWorkingProxy() {
+  if (_proxyTested && CFG._workingProxyIdx < PROXY_CHAIN.length) {
+    const p = PROXY_CHAIN[CFG._workingProxyIdx];
+    return typeof p === 'string' ? p : p.url;
+  }
+
+  const TEST_TIMEOUT = 8000;  // 8s per proxy
+  for (let i = 0; i < PROXY_CHAIN.length; i++) {
+    const p = PROXY_CHAIN[i];
+    const baseUrl = typeof p === 'string' ? p : p.url;
+    try {
+      const testUrl = typeof p === 'string' ? p + '/ping' : p.url;
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), TEST_TIMEOUT);
+      const r = await fetch(testUrl, { signal: controller.signal, method: 'GET' });
+      clearTimeout(timer);
+      if (r.ok || r.status === 404) {  // 404 = Worker exists but no /ping route — still usable
+        CFG._workingProxyIdx = i;
+        CFG.proxyUrl = baseUrl;
+        localStorage.setItem('map_working_idx', String(i));
+        _proxyTested = true;
+        console.log('[Proxy] Using:', baseUrl, '(index', i, ')');
+        return baseUrl;
+      }
+    } catch (e) {
+      console.warn('[Proxy] Failed:', baseUrl, e.message);
+    }
+  }
+
+  // All proxies dead — still return primary for error messages
+  _proxyTested = true;
+  console.warn('[Proxy] ALL proxies unreachable');
+  return typeof PROXY_CHAIN[0] === 'string' ? PROXY_CHAIN[0] : PROXY_CHAIN[0].url;
+}
+
+// ── Smart fetch: proxy with auto-retry and timeout handling ──
+async function smartFetch(proxyPath, fetchOpts) {
+  const baseUrl = CFG.proxyUrl || PROXY_CHAIN[0];
+  const fetchUrl = baseUrl + proxyPath;
+
+  // Retry once — handles transient network blips
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 20000);  // 20s timeout per attempt
+      opts = { ...fetchOpts, signal: controller.signal };
+      const r = await fetch(fetchUrl, opts);
+      clearTimeout(timer);
+      return r;
+    } catch (e) {
+      console.warn(`[Proxy] Attempt ${attempt}/2 failed:`, e.message);
+      if (attempt === 2) throw e;
+      // Brief wait before retry
+      await new Promise(r => setTimeout(r, 1000));
+    }
+  }
+}
 
 // ── Tab switch ──
 function switchTab(tab) {
@@ -866,6 +977,8 @@ function switchTab(tab) {
 document.addEventListener('click', e => {
   const w = document.getElementById('journalWrap');
   if (w && !w.contains(e.target)) w.classList.remove('open');
+  const wc = document.getElementById('journalWrapCite');
+  if (wc && !wc.contains(e.target)) wc.classList.remove('open');
 });
 
 // ============================================================
@@ -965,6 +1078,8 @@ const CN_EN = {
   "响应":["response","responsive"],
   "萌发":["germination","seed germination"],
   "开花":["flowering","floral","flower"],
+  "开花":["flowering","floral","flower"],
+  "花朵":["flower","floral","flowering","bloom"],
   "木质素":["lignin","lignification"],
   "纤维素":["cellulose","cell wall"],
   // 种子/胚胎/发育（2026-05-28 补齐 Seed Biology 核心术语）
@@ -1549,16 +1664,20 @@ const CACHE = {};
 let currentJournal = 'all';
 let journalSelectLabel = '全部期刊';
 
+// 段落检索的"限定期刊"状态（独立于关键词检索的下拉）
+let currentCiteJournal = 'all';
+let citeJournalLabel = '全部期刊';
+
 // 搜索范围：2024 年至今（用户明确要求 24 年以来的文章）
 function getYearRange() {
   const now = new Date().getFullYear();
   return [2024, now];
 }
 
-// Fetch ONE page of articles from MAP via proxy
+// Fetch ONE page of articles from MAP via proxy (with fallback)
 async function fetchOne(url) {
   try {
-    const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    const r = await smartFetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
     const d = await r.json();
     if (d.result === 'success' && d.data && d.data.records) return d.data.records;
   } catch (e) { /* ignore */ }
@@ -1570,7 +1689,9 @@ async function fetchArticles(publisherId) {
   const key = publisherId;
   const now = Date.now();
   if (CACHE[key] && (now - CACHE[key].ts < 3600000)) return CACHE[key].data;
-  const proxy = CFG.proxyUrl;
+
+  // Ensure we have a working proxy
+  const proxy = await detectWorkingProxy();
   if (!proxy) return null;
   const [y0, y1] = getYearRange();
   const baseUrl = proxy + '/api/articles?publisherId=' + publisherId + '&limit=200&pageNum=1';
@@ -1623,13 +1744,39 @@ function splitTokens(query) {
   return tokens;
 }
 
-// Journal match score
+// Journal match score — RELATION-AWARE (semantic), not blind keyword splitting.
+// Understands "X 对 Y 的影响" structure: a journal is relevant if it covers BOTH
+// the subject(s) AND target(s), not just one isolated keyword. Falls back to token
+// matching only for simple non-relation queries (e.g. "TCM", "杨树 盐胁迫").
 function journalScore(query, j) {
   const q = query.toLowerCase();
-  const tokens = splitTokens(query);
   let s = 0;
   if (j.name.toLowerCase().includes(q)) s += 25;
   if (j.nameCN.includes(q)) s += 20;
+
+  // ── RELATION-AWARE journal selection ──
+  const rel = parseQueryRelations(query);
+  if (rel) {
+    const kwLower = (j.keywords || []).map(k => k.toLowerCase());
+    const nameL = j.name.toLowerCase();
+    const nameCNL = (j.nameCN || '').toLowerCase();
+    const descL = (j.desc || '').toLowerCase();
+    // Semantically judge whether the journal covers a term — check name, keywords
+    // AND the official scope description (desc), since many journals' keyword
+    // lists are incomplete while their scope text mentions the real topics.
+    const covers = (term) =>
+      nameL.includes(term) || nameCNL.includes(term) ||
+      kwLower.some(k => k.includes(term) || term.includes(k)) ||
+      descL.includes(term);
+    const hasSubject = rel.subjects.some(covers);
+    const hasTarget  = rel.targets.some(covers);
+    if (hasSubject && hasTarget) s += 30;   // covers the full relation → strong
+    else if (hasSubject) s += 14;
+    else if (hasTarget) s += 14;
+  }
+
+  // ── Token fallback (simple non-relation queries) ──
+  const tokens = splitTokens(query);
   for (const t of tokens) {
     if (j.name.toLowerCase().includes(t)) s += 10;
     if (j.nameCN.includes(t)) s += 8;
@@ -1641,6 +1788,67 @@ function journalScore(query, j) {
     }
   }
   return s;
+}
+
+// Expand a Chinese term (or compound) to all possible EN forms via CN_EN + sub-token decomposition
+function expandQueryTerm(term) {
+  const results = new Set();
+  const t = (term || '').toLowerCase().trim();
+  if (!t) return [];
+  // Direct mapping
+  const direct = cnToEn(t);
+  if (direct) direct.forEach(e => results.add(e));
+  // Sub-token decomposition: any CN_EN key that is a substring of the term
+  for (const [cn, enVals] of Object.entries(CN_EN)) {
+    if (cn.length >= 2 && t.includes(cn)) {
+      enVals.forEach(e => results.add(e));
+    }
+  }
+  // Also keep the raw lowercase term (covers English queries like "crispr", "salt")
+  results.add(t);
+  return [...results];
+}
+
+// Parse query into subject→target relationships for relation-aware scoring.
+// e.g. "基因组和温度 对 花朵发育 的影响"
+//   → subjects: [基因组, 温度]  targets: [花朵, 发育]
+// This tells the scorer to reward articles where a SUBJECT and a TARGET co-occur,
+// rather than just counting individual keyword hits independently.
+function parseQueryRelations(query) {
+  const q = (query || '').toLowerCase();
+  // Chinese pattern: "X 对/对于 Y 的影响/作用/效应/响应"  (X may contain 和/与/、)
+  const mZh = q.match(/(.+?)\s*(对|对于|作用于|影响)\s*(.+?)\s*(的影响|影响|的作用|的效应|的响应|产生|的调控)/);
+  // English pattern: "effect of X on Y" — target captured greedily to end of string
+  //  (group indices aligned with mZh: [1]=subject, [2]=connector, [3]=target)
+  const mEn = q.match(/\b(?:effect|effects|impact|impacts|role)\s+of\s+(.+?)\s+(on|in|upon)\s+(.+)$/);
+  const m = mZh || mEn;
+  if (!m) return null;
+  const subjectPart = m[1];
+  const targetPart = m[3];
+
+  // Stop words to drop from subject/target token lists (both CN and EN conjunctions)
+  const STOP = new Set(['和','与','及','以及','对','对于','的',
+    'and','or','with','the','of','on','in','upon','to','for','a','an']);
+
+  const subjects = [];
+  const targets = [];
+
+  // Split subjects by conjunctions (和/与/及/、/，/,/空格/and/or/with)
+  const subjectTokens = subjectPart
+    .split(/和|与|及|以及|、|,|，|\s+|\band\b|\bor\b|\bwith\b/)
+    .filter(x => x.length > 0 && !STOP.has(x));
+  for (const st of subjectTokens) {
+    expandQueryTerm(st).forEach(e => subjects.push(e));
+  }
+
+  // Targets: split + expand (handles compounds like 花朵发育 / flower development)
+  const targetTokens = splitTokens(targetPart).filter(x => !STOP.has(x));
+  for (const tt of targetTokens) {
+    expandQueryTerm(tt).forEach(e => targets.push(e));
+  }
+
+  if (!subjects.length || !targets.length) return null;
+  return { subjects: [...new Set(subjects)], targets: [...new Set(targets)] };
 }
 
 // Article match score
@@ -1682,6 +1890,48 @@ function articleScore(title, abstract, query) {
       if (t.includes(e)) s += 12;
       if (ab.includes(e)) s += 5;
     }
+
+  // ── RELATION-AWARE BONUS ──
+  // If the query expresses "X 对 Y 的影响" (X's effect on Y), reward articles
+  // where a SUBJECT and a TARGET co-occur. This prevents unrelated articles that
+  // merely contain one keyword (e.g. "genome" without "flower") from ranking high.
+  const rel = parseQueryRelations(query);
+  if (rel) {
+    // Separate SPECIFIC targets (flower, tree, salt-tolerance…) from GENERIC
+    // modifiers (development, growth, response) which are too common to be distinctive.
+    const GENERIC_TARGET_TERMS = ['development', 'developmental', 'growth', 'response',
+      'responsive', 'change', 'changes', 'effect', 'effects', 'regulation', 'expression',
+      'mechanism', 'mechanisms', 'process', 'processes', 'function', 'functions'];
+    const specificTargets = rel.targets.filter(e => !GENERIC_TARGET_TERMS.includes(e));
+    const genericTargets  = rel.targets.filter(e =>  GENERIC_TARGET_TERMS.includes(e));
+
+    const hasSubject   = rel.subjects.some(e => t.includes(e) || ab.includes(e));
+    const hasSpecific  = specificTargets.some(e => t.includes(e) || ab.includes(e));
+    const hasGeneric   = genericTargets.some(e  => t.includes(e) || ab.includes(e));
+
+    if (specificTargets.length > 0 && !hasSpecific) {
+      // Query names a SPECIFIC target (e.g. 花朵→flower) but this article lacks it.
+      // The user asked about flower, not just any development — demote non-matches.
+      s = Math.min(s, 20);
+    } else if (hasSubject && hasSpecific) {
+      s += 40;  // subject + SPECIFIC target (e.g. genome + flower) → strong signal
+      const subjInTitle = rel.subjects.some(e => t.includes(e));
+      const specInTitle = specificTargets.some(e => t.includes(e));
+      if (subjInTitle && specInTitle) s += 30;
+      // Pairwise co-occurrence boost (genome+flower, temperature+flower…)
+      for (const sub of rel.subjects) {
+        for (const tgt of specificTargets) {
+          if (t.includes(sub) && t.includes(tgt)) s += 10;
+          else if (ab.includes(sub) && ab.includes(tgt)) s += 5;
+        }
+      }
+    } else if (hasSubject && hasGeneric) {
+      s += 15;  // subject + only generic target (development/growth) — weaker relevance
+    } else if (hasSubject || hasSpecific || hasGeneric) {
+      s += 5;   // only one side present — weakly relevant
+    }
+  }
+
   return s;
 }
 
@@ -1735,7 +1985,7 @@ async function findArticles(query, maxResults = 5) {
     }
   }
   all.sort((a,b) => b.score - a.score);
-  return all.slice(0, maxResults);
+  return all.slice(0, 150); // cap locally; doKeywordSearch applies relevance filter
 }
 
 // ============================================================
@@ -1767,11 +2017,39 @@ function pickJournal(val, label, el) {
 }
 initJournalDropdown();
 
+// ── Paragraph (citation) journal limiter dropdown ──
+// Separate state from keyword search so the two modes don't interfere.
+function initCiteJournalDropdown() {
+  const dd = document.getElementById('journalDropdownCite');
+  if (!dd) return;
+  dd.innerHTML = '<div class="journal-opt selected" data-val="all" onclick="pickCiteJournal(\'all\',\'全部期刊\',this)">全部期刊</div>';
+  for (const j of MAP_JOURNALS) {
+    const d = document.createElement('div');
+    d.className = 'journal-opt';
+    d.setAttribute('data-val', j.id);
+    d.textContent = j.name;
+    d.onclick = function() { pickCiteJournal(j.id, j.name, d); };
+    dd.appendChild(d);
+  }
+}
+function toggleCiteJournalDrop(e) {
+  e.stopPropagation();
+  document.getElementById('journalWrapCite').classList.toggle('open');
+}
+function pickCiteJournal(val, label, el) {
+  currentCiteJournal = val;
+  citeJournalLabel = label;
+  document.getElementById('journalTextCite').textContent = label;
+  document.querySelectorAll('#journalDropdownCite .journal-opt').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('journalWrapCite').classList.remove('open');
+}
+initCiteJournalDropdown();
+
 // ============================================================
 // KEYWORD SEARCH
 // ============================================================
 async function doKeywordSearch() {
-  if (!CFG.proxyUrl) { alert('代理服务未配置'); return; }
   const q = document.getElementById('searchInput').value.trim();
   if (!q) return;
 
@@ -1787,7 +2065,7 @@ async function doKeywordSearch() {
   try {
     let articles = [];
     if (currentJournal !== 'all') {
-      // Specific journal: fetch + filter
+      // Specific journal: fetch + score every article
       const arts = await fetchArticles(currentJournal);
       if (arts) {
         for (const art of arts) {
@@ -1798,17 +2076,25 @@ async function doKeywordSearch() {
         }
       }
     } else {
-      articles = await findArticles(q, 40);
+      articles = await findArticles(q);
     }
-    articles.sort((a,b) => b.score - a.score);
+    // Keep ONLY genuinely-relevant articles (adaptive threshold) so the user
+    // doesn't have to re-pick from 80+ loosely-matched results.
+    const totalCandidates = articles.length;
+    articles = filterRelevant(articles, 20);
 
     if (articles.length === 0) {
       resultsDiv.innerHTML = renderNoResult(q);
     } else {
-      resultsDiv.innerHTML = renderArticleList(articles, q);
+      resultsDiv.innerHTML = renderArticleList(articles, q, totalCandidates);
     }
   } catch(err) {
-    resultsDiv.innerHTML = '<div class="card"><div class="status-msg status-error">检索出错：' + err.message + '</div></div>';
+    const isProxyErr = err.message.includes('Failed to fetch') || err.message.includes('abort') || err.message.includes('reachable') || err.message.includes('timeout');
+    if (isProxyErr) {
+      resultsDiv.innerHTML = '<div class="card"><div class="status-msg status-error" style="line-height:1.8">⚠️ 网络连接失败：代理服务不可达</div><div style="padding:16px 24px;font-size:13px;color:var(--text-muted);line-height:2">可能原因：<br>• Cloudflare Worker 在当前网络不稳定（国内常见）<br>• 所有备用代理节点均无响应<br><br>建议操作：<br>① 刷新页面重试（系统会自动切换代理节点）<br>② 如果反复失败，可使用 <b>本地模式</b>：运行 start_search.bat 启动本地代理<br>③ 联系管理员确认代理服务状态</div></div>';
+    } else {
+      resultsDiv.innerHTML = '<div class="card"><div class="status-msg status-error">检索出错：' + err.message + '</div></div>';
+    }
   }
   btn.disabled = false;
   bc.textContent = '检索';
@@ -1820,7 +2106,6 @@ async function doKeywordSearch() {
 async function doCiteSearch() {
   const para = document.getElementById('paraInput').value.trim();
   if (!para) { alert('请先粘贴您的段落内容'); return; }
-  if (!CFG.proxyUrl) { alert('代理服务未配置，请联系管理员'); return; }
 
   const btn = document.getElementById('citeBtn');
   const bc  = document.getElementById('citeBtnContent');
@@ -1879,6 +2164,13 @@ Return ONLY valid JSON (no markdown, no extra text):
     // Validate that selected journals exist in MAP_JOURNALS
     const validIds = new Set(MAP_JOURNALS.map(j => j.id));
     selectedJournals = [...new Set(selectedJournals)].filter(id => validIds.has(id));
+    // ── User-locked journal (段落检索"限定期刊") ──
+    // 用户在段落面板选了具体期刊时，覆盖 AI 的选刊结果，让推荐只来自该刊。
+    if (currentCiteJournal !== 'all') {
+      selectedJournals = [currentCiteJournal];
+      const jObj = MAP_JOURNALS.find(x => x.id === currentCiteJournal);
+      selectedField = '限定期刊：' + (jObj ? jObj.name + (jObj.nameCN ? ' (' + jObj.nameCN + ')' : '') : currentCiteJournal);
+    }
     // If AI didn't pick any journals, fall back to keyword-based findArticles
     if (!selectedJournals.length) {
       resultsDiv.innerHTML = '<div class="card" style="text-align:center;padding:28px;color:var(--text-light);font-size:14px;">AI 未能匹配到合适期刊，正在用关键词全平台检索…</div>';
@@ -1898,9 +2190,12 @@ Return ONLY valid JSON (no markdown, no extra text):
           const title = stripHtml(art.titleEn);
           if (!title) continue;
           const ab = stripHtml(art.abstractinfoEn);
-          // 用整段 + 提取 queries 综合打分，确保跨年相关性
-          let best = articleScore(title, ab, para);
-          for (const q of queries) best = Math.max(best, articleScore(title, ab, q));
+          // 只用 AI 提取的 queries（已是精炼语义单元）做打分；不再把整段 para 当孤立
+          // 关键词拆词——段落词极多会导致几乎每篇都虚高、预排序失去区分度。
+          // 当 AI 未返回 queries 时（极少数），退化为用整段语义打分。
+          const scoreQueries = (queries && queries.length) ? queries : [para];
+          let best = 0;
+          for (const q of scoreQueries) best = Math.max(best, articleScore(title, ab, q));
           scored.push({
             title, abstract: ab.slice(0, 400), doi: art.doi,
             jId, jName: jObj ? jObj.name : jId,
@@ -2058,9 +2353,9 @@ Return ONLY valid JSON (no markdown), exactly this format:
   bc.textContent = '智能推荐参考文献';
 }
 
-// ── Call DeepSeek API (via Cloudflare Worker proxy) ──
+// ── Call DeepSeek API (via proxy with fallback) ──
 async function callDeepSeek(prompt, maxTokens = 500) {
-  const resp = await fetch(CFG.proxyUrl + '/api/deepseek', {
+  const resp = await smartFetch('/api/deepseek', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -2093,6 +2388,7 @@ function renderArticleItem(a) {
     <div class="art-title"><a href="${url}" target="_blank">${a.title}</a></div>
     <div class="art-meta">
       <a href="${jUrl}" class="art-journal" target="_blank">${a.jName}</a>
+      ${matchBadge(a.score)}
       <span>${a.year}${a.volume ? ' · Vol.'+a.volume : ''}${a.issue ? '('+a.issue+')' : ''}</span>
       <span class="art-tag ${tc}">${tl}</span>
       <span class="art-doi">DOI: ${a.doi}</span>
@@ -2100,12 +2396,50 @@ function renderArticleItem(a) {
   </div>`;
 }
 
-function renderArticleList(articles, query) {
+// ── Relevance filter: keep ONLY genuinely-relevant articles ──
+// The raw articleScore gives many articles a small positive score (a single
+// keyword in the abstract). Showing all of them (80+) just shifts the picking
+// burden back to the user. This adapts to the query:
+//   • if strong relation matches exist (top score ≥ 40, e.g. "genome + flower"),
+//     keep ONLY articles scoring ≥ 40 (the ones that actually carry the relation);
+//   • otherwise (simple query like "杨树 盐胁迫"), keep articles scoring ≥
+//     max(12, top*0.45) — i.e. clearly above the keyword-noise floor;
+//   • never return empty while candidates exist; cap at `cap`.
+function filterRelevant(articles, cap = 20) {
+  const arr = articles.slice().sort((a, b) => b.score - a.score);
+  if (!arr.length) return [];
+  const top = arr[0].score;
+  let kept;
+  if (top >= 40) {
+    kept = arr.filter(a => a.score >= 40);
+  } else {
+    const thr = Math.max(12, Math.round(top * 0.45));
+    kept = arr.filter(a => a.score >= thr);
+  }
+  if (!kept.length) kept = arr.slice(0, Math.min(8, arr.length));
+  return kept.slice(0, cap);
+}
+
+// Match-strength badge so the user sees relevance at a glance
+function matchBadge(score) {
+  if (score >= 40) return '<span class="match-badge rel-high">● 高度相关</span>';
+  if (score >= 15) return '<span class="match-badge rel-mid">● 相关</span>';
+  return '<span class="match-badge rel-low">● 弱相关</span>';
+}
+
+function renderArticleList(articles, query, totalCandidates) {
   const [y0, y1] = getYearRange();
+  const shown = articles.length;
+  let note = '';
+  if (totalCandidates && totalCandidates > shown) {
+    note = ` · 已按匹配度筛选出 ${shown} 篇，另有 ${totalCandidates - shown} 篇仅弱相关未展示`;
+  } else if (shown >= 20) {
+    note = ` · 仅展示匹配度最高的 ${shown} 篇`;
+  }
   return `<div class="card">
     <div class="articles-header">
       <div class="articles-title">检索结果</div>
-      <div class="articles-count">${articles.length} 篇匹配文章 · ${y0}–${y1} 年</div>
+      <div class="articles-count">${shown} 篇高相关文章 · ${y0}–${y1} 年${note}</div>
     </div>
     ${articles.map(renderArticleItem).join('')}
     <div class="citation-hint">📝 点击标题查看全文与引文格式，DOI 已标注</div>
@@ -2225,11 +2559,12 @@ function escHtml(str) {
 }
 
 function renderNoResult(q) {
+  const [y0, y1] = getYearRange();
   return `<div class="card">
     <div class="no-result">
       <div class="nr-icon">📚</div>
       <h3>未找到匹配文章</h3>
-      <p>在近两年 MAP 期刊文章中未能匹配到相关结果。可尝试使用英文关键词，或前往 MAP 全平台搜索。</p>
+      <p>在 ${y0}–${y1} 年 MAP 期刊文章中未能匹配到相关结果。可尝试使用英文关键词，或前往 MAP 全平台搜索。</p>
       <a class="full-search-btn" href="https://www.maxapress.com/search" target="_blank">前往 MAP 全平台检索 →</a>
     </div>
   </div>`;
@@ -2316,6 +2651,26 @@ function downloadRis(btn) {
   btn.textContent = '✓ 已下载';
   setTimeout(() => { btn.textContent = orig; }, 2000);
 }
+
+// ── Proxy auto-detection on page load (silent background) ─_
+(function() {
+  detectWorkingProxy().then(url => {
+    const badge = document.getElementById('proxy-status');
+    if (badge) {
+      const name = url.includes('workers.dev') ? 'Cloudflare' :
+                   url.includes('corsproxy') ? 'CORS Proxy' :
+                   url.includes('allorigins') ? 'AllOrigins' : 'Proxy';
+      badge.textContent = '🟢 ' + name;
+      badge.title = '代理: ' + url;
+    }
+  }).catch(() => {
+    const badge = document.getElementById('proxy-status');
+    if (badge) {
+      badge.textContent = '🔴 代理离线';
+      badge.title = '所有代理不可达，搜索可能失败';
+    }
+  });
+})();
 </script>
 </body>
 </html>
