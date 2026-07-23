@@ -823,7 +823,7 @@ a.cite-marker:hover { background: #f5b7b1; }
   <!-- Panel B: Keyword Search -->
   <div class="panel" id="panel-search">
     <div class="card">
-      <div class="card-label"><span class="icon">🔍</span>关键词检索 <span id="proxy-status" style="font-size:11px;font-weight:400;opacity:0.6;margin-left:8px;">🟡 检测中…</span></div>
+      <div class="card-label"><span class="icon">🔍</span>关键词检索</div>
       <div style="position:relative;">
         <div class="search-row">
           <input type="text" class="search-input" id="searchInput"
@@ -897,102 +897,8 @@ const PROXY_CHAIN = [
 const MAP_API_BASE = 'https://www.maxapress.com/data/article/latest-issue-articles';
 
 let CFG = {
-  // User can override via localStorage key "map_proxy_url"
   proxyUrl: localStorage.getItem('map_proxy_url') || PROXY_CHAIN[0],
-  // Auto-detected working proxy index (cached)
-  _workingProxyIdx: parseInt(localStorage.getItem('map_working_idx') || '0', 10),
 };
-
-// ── Proxy health check & auto-switch ──
-// Tests each proxy in chain with BOTH a lightweight ping AND a real API probe.
-// The ping confirms the Worker is alive; the API probe confirms it can reach MAP API.
-// Caches the result so we don't re-test on every search.
-let _proxyTested = false;
-let _proxyApiOk = false;  // whether the API probe passed
-async function detectWorkingProxy() {
-  if (_proxyTested && CFG._workingProxyIdx < PROXY_CHAIN.length) {
-    const p = PROXY_CHAIN[CFG._workingProxyIdx];
-    return typeof p === 'string' ? p : p.url;
-  }
-
-  const PING_TIMEOUT = 8000;   // 8s for lightweight ping
-  const API_TIMEOUT = 25000;   // 25s for real API probe (Worker→MAP can be slow from China)
-  for (let i = 0; i < PROXY_CHAIN.length; i++) {
-    const p = PROXY_CHAIN[i];
-    const baseUrl = typeof p === 'string' ? p : p.url;
-    try {
-      // Step 1: Lightweight ping — is the Worker alive?
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), PING_TIMEOUT);
-      const r = await fetch(baseUrl + '/ping', { signal: controller.signal, method: 'GET' });
-      clearTimeout(timer);
-      if (!(r.ok || r.status === 404)) continue;
-
-      // Step 2: Real API probe — can the Worker actually forward to MAP API?
-      // Use a small request (limit=1) to minimize data transfer
-      let apiOk = false;
-      try {
-        const ac2 = new AbortController();
-        const t2 = setTimeout(() => ac2.abort(), API_TIMEOUT);
-        const apiRes = await fetch(baseUrl + '/api/articles?publisherId=forres&limit=1&pageNum=1', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: '{}',
-          signal: ac2.signal
-        });
-        clearTimeout(t2);
-        if (apiRes.ok) {
-          const d = await apiRes.json();
-          if (d.result === 'success' && d.data && d.data.records) {
-            apiOk = true;
-          }
-        }
-      } catch (e) {
-        console.warn('[Proxy] API probe failed (ping was OK):', e.message);
-        // Ping works but API doesn't — still use this proxy but mark as degraded
-      }
-
-      CFG._workingProxyIdx = i;
-      CFG.proxyUrl = baseUrl;
-      localStorage.setItem('map_working_idx', String(i));
-      _proxyTested = true;
-      _proxyApiOk = apiOk;
-      console.log('[Proxy] Using:', baseUrl, '(index', i, ')', apiOk ? 'API OK' : '⚠️ API degraded');
-      return baseUrl;
-    } catch (e) {
-      console.warn('[Proxy] Failed:', baseUrl, e.message);
-    }
-  }
-
-  // All proxies dead — still return primary for error messages
-  _proxyTested = true;
-  _proxyApiOk = false;
-  console.warn('[Proxy] ALL proxies unreachable');
-  return typeof PROXY_CHAIN[0] === 'string' ? PROXY_CHAIN[0] : PROXY_CHAIN[0].url;
-}
-
-// ── Smart fetch: proxy with auto-retry and timeout handling ──
-async function smartFetch(proxyPath, fetchOpts) {
-  const baseUrl = CFG.proxyUrl || PROXY_CHAIN[0];
-  const fetchUrl = baseUrl + proxyPath;
-
-  // Retry once — handles transient network blips
-  for (let attempt = 1; attempt <= 2; attempt++) {
-    try {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 30000);  // 30s timeout (Worker→MAP can be slow from China)
-      opts = { ...fetchOpts, signal: controller.signal };
-      const r = await fetch(fetchUrl, opts);
-      clearTimeout(timer);
-      return r;
-    } catch (e) {
-      console.warn(`[Proxy] Attempt ${attempt}/2 failed:`, e.message);
-      if (attempt === 2) throw e;
-      // Brief wait before retry
-      await new Promise(r => setTimeout(r, 1500));  // 1.5s between retries
-    }
-  }
-}
 
 // ── Tab switch ──
 function switchTab(tab) {
@@ -1703,21 +1609,18 @@ function getYearRange() {
   return [2024, now];
 }
 
-// Fetch ONE page of articles from MAP via proxy (with fallback)
+// Fetch ONE page of articles from MAP via proxy
 async function fetchOne(url) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 20000);
   try {
-    const r = await smartFetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
-    if (!r.ok) { console.warn('[fetchOne] HTTP', r.status, url); return null; }
+    const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}', signal: controller.signal });
+    clearTimeout(timer);
+    if (!r.ok) { console.warn('[fetchOne] HTTP', r.status); return []; }
     const d = await r.json();
     if (d.result === 'success' && d.data && d.data.records) return d.data.records;
-    // API returned non-success or unexpected format
-    if (d.result === 'error') console.warn('[fetchOne] API error:', d.message);
-    else console.warn('[fetchOne] Unexpected format:', JSON.stringify(d).slice(0, 200));
-    return null;
-  } catch (e) {
-    console.warn('[fetchOne] Exception:', e.message, url);
-    return null;  // network error / timeout / abort → signal failure to caller
-  }
+    return [];
+  } catch (e) { console.warn('[fetchOne] Error:', e.message); return []; }
 }
 
 // Fetch articles from MAP via proxy — guarantees full 2024-present coverage
@@ -1726,15 +1629,11 @@ async function fetchArticles(publisherId) {
   const now = Date.now();
   if (CACHE[key] && (now - CACHE[key].ts < 3600000)) return CACHE[key].data;
 
-  // Ensure we have a working proxy
-  const proxy = await detectWorkingProxy();
-  if (!proxy) return null;
   const [y0, y1] = getYearRange();
-  const baseUrl = proxy + '/api/articles?publisherId=' + publisherId + '&limit=200&pageNum=1';
+  const baseUrl = CFG.proxyUrl + '/api/articles?publisherId=' + publisherId + '&limit=200&pageNum=1';
   try {
     // 1) 先拉一次全量（不限年）。MAP 单刊文章通常 < 200，直接覆盖 2024-至今。
     let recs = await fetchOne(baseUrl);
-    if (!recs) return null;  // proxy/API failure — don't cache empty result
     let all = recs.slice();
     // 2) 若恰好触顶 200 条（可能截断），且未包含起始年，则按年补齐，确保不漏 2024 文章。
     const hasStartYear = recs.some(r => parseInt(r.year, 10) === y0);
@@ -1742,7 +1641,7 @@ async function fetchArticles(publisherId) {
       const yearTasks = [];
       for (let y = y0; y <= y1; y++) yearTasks.push(fetchOne(baseUrl + '&year=' + y));
       const yr = await Promise.all(yearTasks);
-      for (const r of yr) { if (r) all = all.concat(r); }  // skip nulls (failed years)
+      for (const r of yr) all = all.concat(r);
     }
     // 3) 年份过滤（2024-至今）+ 按 doi 去重
     const seen = new Set();
@@ -1758,7 +1657,7 @@ async function fetchArticles(publisherId) {
     return out;
   } catch (e) {
     console.warn('fetch failed for', publisherId, e.message);
-    return null;  // failure — don't cache
+    return [];
   }
 }
 
@@ -2106,41 +2005,23 @@ async function doKeywordSearch() {
 
   try {
     let articles = [];
-    let proxyFailed = false;
     if (currentJournal !== 'all') {
-      // Specific journal: fetch + score every article
       const arts = await fetchArticles(currentJournal);
-      if (!arts) proxyFailed = true;
-      else {
-        for (const art of arts) {
-          const title = stripHtml(art.titleEn);
-          const ab = stripHtml(art.abstractinfoEn);
-          const sc = articleScore(title, ab, q);
-          if (sc > 0) articles.push({ title, doi: art.doi, jId: currentJournal, jName: journalSelectLabel, year: art.year, volume: art.volume, issue: art.issue, type: art.classifyinfoEn || 'ARTICLE', score: sc });
-        }
+      for (const art of arts) {
+        const title = stripHtml(art.titleEn);
+        const ab = stripHtml(art.abstractinfoEn);
+        const sc = articleScore(title, ab, q);
+        if (sc > 0) articles.push({ title, doi: art.doi, jId: currentJournal, jName: journalSelectLabel, year: art.year, volume: art.volume, issue: art.issue, type: art.classifyinfoEn || 'ARTICLE', score: sc });
       }
     } else {
       articles = await findArticles(q);
-      // findArticles returns [] when all fetchArticles calls returned null (proxy down)
-      if (articles.length === 0) {
-        // Distinguish "proxy down" from "no matches": re-test one journal
-        const testArt = await fetchArticles(MAP_JOURNALS[0].id);
-        if (!testArt) proxyFailed = true;
-      }
     }
 
-    // ── Proxy failure → clear error message, don't show "no results" ──
-    if (proxyFailed || (articles.length === 0 && !proxyFailed)) {
-      if (proxyFailed) {
-        resultsDiv.innerHTML = '<div class="card"><div class="status-msg status-error" style="line-height:1.8">⚠️ 网络连接失败：无法获取期刊文章数据</div><div style="padding:16px 24px;font-size:13px;color:var(--text-muted);line-height:2">代理服务无法连接到 MAP 数据源。<br><br>建议操作：<br>① <b>刷新页面</b>重试（网络可能已恢复）<br>② 使用 <b>本地模式</b>：运行 start_search.bat 启动本地代理<br>③ 稍后再试（Cloudflare Worker 在国内可能间歇性不稳定）</div></div>';
-      } else {
-        resultsDiv.innerHTML = renderNoResult(q);
-      }
+    if (articles.length === 0) {
+      resultsDiv.innerHTML = renderNoResult(q);
     } else {
-      // Keep ONLY genuinely-relevant articles
       const totalCandidates = articles.length;
       articles = filterRelevant(articles, 20);
-
       if (articles.length === 0) {
         resultsDiv.innerHTML = renderNoResult(q);
       } else {
@@ -2239,17 +2120,11 @@ Return ONLY valid JSON (no markdown, no extra text):
     // then let AI do final semantic ranking. Pre-ranking spans ALL years 2024-至今 so a
     // 2024/2025 gem is not shadowed by the 15 most-recent (2026) articles.
     let candidateArticles = [];
-    let proxyFailed = false;
+
     if (selectedJournals.length > 0) {
       const perJournal = await Promise.all(selectedJournals.map(async (jId) => {
         const arts = await fetchArticles(jId);
-        // Detect proxy failure: if the FIRST selected journal returns null, flag it
-        if (!arts && candidateArticles.length === 0 && !proxyFailed) {
-          // Double-check with a different journal to confirm it's not just an empty journal
-          const testArt = await fetchArticles(MAP_JOURNALS[0].id === jId ? MAP_JOURNALS[1].id : MAP_JOURNALS[0].id);
-          if (!testArt) proxyFailed = true;
-        }
-        if (!arts || !arts.length) return [];
+        if (!arts.length) return [];
         const jObj = MAP_JOURNALS.find(x => x.id === jId);
         const scored = [];
         for (const art of arts) {
@@ -2311,12 +2186,6 @@ Return ONLY valid JSON (no markdown, no extra text):
     }
 
     if (candidateArticles.length === 0) {
-      if (proxyFailed) {
-        resultsDiv.innerHTML = '<div class="card"><div class="status-msg status-error" style="line-height:1.8">⚠️ 网络连接失败：无法获取期刊文章数据</div><div style="padding:16px 24px;font-size:13px;color:var(--text-muted);line-height:2">代理服务无法连接到 MAP 数据源，无法检索参考文献。<br><br>建议操作：<br>① <b>刷新页面</b>重试（网络可能已恢复）<br>② 使用 <b>本地模式</b>：运行 start_search.bat 启动本地代理<br>③ 稍后再试（Cloudflare Worker 在国内可能间歇性不稳定）</div></div>';
-        btn.disabled = false;
-        bc.textContent = '智能推荐参考文献';
-        return;
-      }
       resultsDiv.innerHTML = renderNoResult('the given paragraph');
       btn.disabled = false;
       bc.textContent = '智能推荐参考文献';
@@ -2425,9 +2294,11 @@ Return ONLY valid JSON (no markdown), exactly this format:
   bc.textContent = '智能推荐参考文献';
 }
 
-// ── Call DeepSeek API (via proxy with fallback) ──
+// ── Call DeepSeek API (via proxy) ──
 async function callDeepSeek(prompt, maxTokens = 500) {
-  const resp = await smartFetch('/api/deepseek', {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 30000);
+  const resp = await fetch(CFG.proxyUrl + '/api/deepseek', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -2436,7 +2307,9 @@ async function callDeepSeek(prompt, maxTokens = 500) {
       max_tokens: maxTokens,
       temperature: 0.3,
     }),
+    signal: controller.signal,
   });
+  clearTimeout(timer);
   if (!resp.ok) {
     const e = await resp.text();
     throw new Error('DeepSeek API error: ' + resp.status + ' ' + e.slice(0, 200));
@@ -2723,34 +2596,6 @@ function downloadRis(btn) {
   btn.textContent = '✓ 已下载';
   setTimeout(() => { btn.textContent = orig; }, 2000);
 }
-
-// ── Proxy auto-detection on page load (silent background) ─_
-(function() {
-  detectWorkingProxy().then(url => {
-    const badge = document.getElementById('proxy-status');
-    if (badge) {
-      const name = url.includes('workers.dev') ? 'Cloudflare' :
-                   url.includes('corsproxy') ? 'CORS Proxy' :
-                   url.includes('allorigins') ? 'AllOrigins' : 'Proxy';
-      if (_proxyApiOk) {
-        badge.textContent = '🟢 ' + name;
-        badge.title = '代理正常 (API 已验证): ' + url;
-        badge.style.color = 'var(--green)';
-      } else {
-        badge.textContent = '🟡 ' + name + ' 不稳定';
-        badge.title = '⚠️ 代理在线但 API 转发可能超时（搜索可能失败）。建议刷新或使用本地模式。';
-        badge.style.color = '#e67e22';
-      }
-    }
-  }).catch(() => {
-    const badge = document.getElementById('proxy-status');
-    if (badge) {
-      badge.textContent = '🔴 代理离线';
-      badge.title = '所有代理不可达，搜索可能失败';
-      badge.style.color = 'var(--red, #c0392b)';
-    }
-  });
-})();
 </script>
 </body>
 </html>
