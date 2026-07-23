@@ -1994,7 +1994,9 @@ async function findArticles(query, maxResults = 5) {
 function initJournalDropdown() {
   const dd = document.getElementById('journalDropdown');
   dd.innerHTML = '<div class="journal-opt selected" data-val="all" onclick="pickJournal(\'all\',\'全部期刊\',this)">全部期刊</div>';
-  for (const j of MAP_JOURNALS) {
+  // Sort journals alphabetically by English name for easier lookup
+  const sorted = [...MAP_JOURNALS].sort((a, b) => a.name.localeCompare(b.name, 'en'));
+  for (const j of sorted) {
     const d = document.createElement('div');
     d.className = 'journal-opt';
     d.setAttribute('data-val', j.id);
@@ -2011,7 +2013,8 @@ function pickJournal(val, label, el) {
   currentJournal = val;
   journalSelectLabel = label;
   document.getElementById('journalText').textContent = label;
-  document.querySelectorAll('.journal-opt').forEach(o => o.classList.remove('selected'));
+  // Only clear selection within the keyword search dropdown (not the cite dropdown)
+  document.querySelectorAll('#journalDropdown .journal-opt').forEach(o => o.classList.remove('selected'));
   el.classList.add('selected');
   document.getElementById('journalWrap').classList.remove('open');
 }
@@ -2023,7 +2026,9 @@ function initCiteJournalDropdown() {
   const dd = document.getElementById('journalDropdownCite');
   if (!dd) return;
   dd.innerHTML = '<div class="journal-opt selected" data-val="all" onclick="pickCiteJournal(\'all\',\'全部期刊\',this)">全部期刊</div>';
-  for (const j of MAP_JOURNALS) {
+  // Same alphabetical sort as keyword dropdown
+  const sorted = [...MAP_JOURNALS].sort((a, b) => a.name.localeCompare(b.name, 'en'));
+  for (const j of sorted) {
     const d = document.createElement('div');
     d.className = 'journal-opt';
     d.setAttribute('data-val', j.id);
@@ -2064,10 +2069,12 @@ async function doKeywordSearch() {
 
   try {
     let articles = [];
+    let proxyFailed = false;
     if (currentJournal !== 'all') {
       // Specific journal: fetch + score every article
       const arts = await fetchArticles(currentJournal);
-      if (arts) {
+      if (!arts) proxyFailed = true;
+      else {
         for (const art of arts) {
           const title = stripHtml(art.titleEn);
           const ab = stripHtml(art.abstractinfoEn);
@@ -2077,16 +2084,31 @@ async function doKeywordSearch() {
       }
     } else {
       articles = await findArticles(q);
+      // findArticles returns [] when all fetchArticles calls returned null (proxy down)
+      if (articles.length === 0) {
+        // Distinguish "proxy down" from "no matches": re-test one journal
+        const testArt = await fetchArticles(MAP_JOURNALS[0].id);
+        if (!testArt) proxyFailed = true;
+      }
     }
-    // Keep ONLY genuinely-relevant articles (adaptive threshold) so the user
-    // doesn't have to re-pick from 80+ loosely-matched results.
-    const totalCandidates = articles.length;
-    articles = filterRelevant(articles, 20);
 
-    if (articles.length === 0) {
-      resultsDiv.innerHTML = renderNoResult(q);
+    // ── Proxy failure → clear error message, don't show "no results" ──
+    if (proxyFailed || (articles.length === 0 && !proxyFailed)) {
+      if (proxyFailed) {
+        resultsDiv.innerHTML = '<div class="card"><div class="status-msg status-error" style="line-height:1.8">⚠️ 网络连接失败：无法获取期刊文章数据</div><div style="padding:16px 24px;font-size:13px;color:var(--text-muted);line-height:2">代理服务无法连接到 MAP 数据源。<br><br>建议操作：<br>① <b>刷新页面</b>重试（网络可能已恢复）<br>② 使用 <b>本地模式</b>：运行 start_search.bat 启动本地代理<br>③ 稍后再试（Cloudflare Worker 在国内可能间歇性不稳定）</div></div>';
+      } else {
+        resultsDiv.innerHTML = renderNoResult(q);
+      }
     } else {
-      resultsDiv.innerHTML = renderArticleList(articles, q, totalCandidates);
+      // Keep ONLY genuinely-relevant articles
+      const totalCandidates = articles.length;
+      articles = filterRelevant(articles, 20);
+
+      if (articles.length === 0) {
+        resultsDiv.innerHTML = renderNoResult(q);
+      } else {
+        resultsDiv.innerHTML = renderArticleList(articles, q, totalCandidates);
+      }
     }
   } catch(err) {
     const isProxyErr = err.message.includes('Failed to fetch') || err.message.includes('abort') || err.message.includes('reachable') || err.message.includes('timeout');
@@ -2180,9 +2202,16 @@ Return ONLY valid JSON (no markdown, no extra text):
     // then let AI do final semantic ranking. Pre-ranking spans ALL years 2024-至今 so a
     // 2024/2025 gem is not shadowed by the 15 most-recent (2026) articles.
     let candidateArticles = [];
+    let proxyFailed = false;
     if (selectedJournals.length > 0) {
       const perJournal = await Promise.all(selectedJournals.map(async (jId) => {
         const arts = await fetchArticles(jId);
+        // Detect proxy failure: if the FIRST selected journal returns null, flag it
+        if (!arts && candidateArticles.length === 0 && !proxyFailed) {
+          // Double-check with a different journal to confirm it's not just an empty journal
+          const testArt = await fetchArticles(MAP_JOURNALS[0].id === jId ? MAP_JOURNALS[1].id : MAP_JOURNALS[0].id);
+          if (!testArt) proxyFailed = true;
+        }
         if (!arts || !arts.length) return [];
         const jObj = MAP_JOURNALS.find(x => x.id === jId);
         const scored = [];
@@ -2245,6 +2274,12 @@ Return ONLY valid JSON (no markdown, no extra text):
     }
 
     if (candidateArticles.length === 0) {
+      if (proxyFailed) {
+        resultsDiv.innerHTML = '<div class="card"><div class="status-msg status-error" style="line-height:1.8">⚠️ 网络连接失败：无法获取期刊文章数据</div><div style="padding:16px 24px;font-size:13px;color:var(--text-muted);line-height:2">代理服务无法连接到 MAP 数据源，无法检索参考文献。<br><br>建议操作：<br>① <b>刷新页面</b>重试（网络可能已恢复）<br>② 使用 <b>本地模式</b>：运行 start_search.bat 启动本地代理<br>③ 稍后再试（Cloudflare Worker 在国内可能间歇性不稳定）</div></div>';
+        btn.disabled = false;
+        bc.textContent = '智能推荐参考文献';
+        return;
+      }
       resultsDiv.innerHTML = renderNoResult('the given paragraph');
       btn.disabled = false;
       bc.textContent = '智能推荐参考文献';
