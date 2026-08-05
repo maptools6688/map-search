@@ -890,11 +890,19 @@ a.cite-marker:hover { background: #f5b7b1; }
 //
 
 const PROXY_CHAIN = [
-  // Primary: Cloudflare Worker
-  'https://map-proxy.guxiaoxiao682.workers.dev',
+  // Primary: Cloudflare Worker custom domain
+  'https://api.maparticles.com',
 ];
 
 const MAP_API_BASE = 'https://www.maxapress.com/data/article/latest-issue-articles';
+
+// Clear stale localStorage proxy URL so the new custom domain takes effect
+(function migrateProxyUrl() {
+  const stored = localStorage.getItem('map_proxy_url');
+  if (stored && stored.includes('workers.dev')) {
+    localStorage.removeItem('map_proxy_url');
+  }
+})();
 
 let CFG = {
   proxyUrl: localStorage.getItem('map_proxy_url') || PROXY_CHAIN[0],
