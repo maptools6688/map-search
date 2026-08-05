@@ -517,7 +517,16 @@ a.cite-marker:hover { background: #f5b7b1; }
   font-weight: 600;
   color: var(--primary);
   line-height: 1.5;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
+}
+.art-title-cn {
+  font-size: 13px;
+  font-weight: 500;
+  color: #4a5c6d;
+  line-height: 1.5;
+  margin-bottom: 8px;
+  padding-left: 10px;
+  border-left: 3px solid #e67e22;
 }
 .art-title a { color: inherit; text-decoration: none; }
 .art-title a:hover { color: var(--primary-light); text-decoration: underline; }
@@ -1918,10 +1927,11 @@ async function findArticles(query, maxResults = 5) {
     if (!results[i]) continue;
     for (const art of results[i]) {
       const title = stripHtml(art.titleEn);
+      const titleCn = stripHtml(art.titleCn) || '';
       const ab = stripHtml(art.abstractinfoEn);
       const sc = articleScore(title, ab, query);
       if (sc > 0) all.push({
-        title, abstract: ab.slice(0, 500), doi: art.doi,
+        title, titleCn, abstract: ab.slice(0, 500), doi: art.doi,
         jId: toSearch[i].j.id, jName: toSearch[i].j.name,
         year: art.year, volume: art.volume, issue: art.issue,
         type: art.classifyinfoEn || 'ARTICLE', score: sc
@@ -2017,9 +2027,10 @@ async function doKeywordSearch() {
       const arts = await fetchArticles(currentJournal);
       for (const art of arts) {
         const title = stripHtml(art.titleEn);
+        const titleCn = stripHtml(art.titleCn) || '';
         const ab = stripHtml(art.abstractinfoEn);
         const sc = articleScore(title, ab, q);
-        if (sc > 0) articles.push({ title, doi: art.doi, jId: currentJournal, jName: journalSelectLabel, year: art.year, volume: art.volume, issue: art.issue, type: art.classifyinfoEn || 'ARTICLE', score: sc });
+        if (sc > 0) articles.push({ title, titleCn, doi: art.doi, jId: currentJournal, jName: journalSelectLabel, year: art.year, volume: art.volume, issue: art.issue, type: art.classifyinfoEn || 'ARTICLE', score: sc });
       }
     } else {
       articles = await findArticles(q);
@@ -2137,6 +2148,7 @@ Return ONLY valid JSON (no markdown, no extra text):
         const scored = [];
         for (const art of arts) {
           const title = stripHtml(art.titleEn);
+          const titleCn = stripHtml(art.titleCn) || '';
           if (!title) continue;
           const ab = stripHtml(art.abstractinfoEn);
           // 只用 AI 提取的 queries（已是精炼语义单元）做打分；不再把整段 para 当孤立
@@ -2146,7 +2158,7 @@ Return ONLY valid JSON (no markdown, no extra text):
           let best = 0;
           for (const q of scoreQueries) best = Math.max(best, articleScore(title, ab, q));
           scored.push({
-            title, abstract: ab.slice(0, 400), doi: art.doi,
+            title, titleCn, abstract: ab.slice(0, 400), doi: art.doi,
             jId, jName: jObj ? jObj.name : jId,
             year: art.year, volume: art.volume, issue: art.issue,
             type: art.classifyinfoEn || 'ARTICLE', score: best
@@ -2280,13 +2292,14 @@ CRITICAL RULES for citation placement:
 5. Insert "[n]" markers at the END of those sentences (before the period), using the article numbers above.
 6. Return the COMPLETE paragraph with citations inserted. Do not change any other words.
 7. Also return: for each article [n] that you actually inserted in the paragraph, write a brief reason IN CHINESE (1-2 sentences) explaining WHY this article supports the paragraph content. Skip articles that you did not cite.
+8. For each inserted article [n], also provide a concise Chinese translation of its English title in the field 'titleZh'. Make it natural and readable for Chinese researchers (not word-for-word literal).
 
 Return ONLY valid JSON (no markdown), exactly this format:
 {
   "annotated": "...full paragraph text with [n] markers inserted...",
   "insertions": [
-    { "ref": 1, "after": "first 10 words of the sentence where [1] was inserted", "reason": "用中文写一句说明该参考文献为何支撑本段论点" },
-    { "ref": 2, "after": "first 10 words of the sentence where [2] was inserted", "reason": "用中文写一句说明该参考文献为何支撑本段论点" }
+    { "ref": 1, "after": "first 10 words of the sentence where [1] was inserted", "reason": "用中文写一句说明该参考文献为何支撑本段论点", "titleZh": "中文标题翻译" },
+    { "ref": 2, "after": "first 10 words of the sentence where [2] was inserted", "reason": "用中文写一句说明该参考文献为何支撑本段论点", "titleZh": "中文标题翻译" }
   ]
 }`;
 
@@ -2437,11 +2450,13 @@ function renderCiteResults(citeResult, articles) {
 
   // ── Block 2: Referenced articles with citation formats ──
   if (articles.length > 0) {
-    // Build a map from ref index → reason (from insertions)
+    // Build maps from ref index → reason / Chinese title (from insertions)
     const reasonMap = {};
+    const titleZhMap = {};
     if (citeResult && citeResult.insertions) {
       citeResult.insertions.forEach(ins => {
         if (ins.ref && ins.reason) reasonMap[ins.ref] = ins.reason;
+        if (ins.ref && ins.titleZh) titleZhMap[ins.ref] = ins.titleZh;
       });
     }
 
@@ -2465,11 +2480,14 @@ function renderCiteResults(citeResult, articles) {
       const escVan  = vanText.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
       // Reason (Chinese)
       const reason = reasonMap[refNum] || '';
+      // Chinese title: prefer official titleCn, fallback to AI-translated titleZh
+      const titleCn = a.titleCn || titleZhMap[refNum] || '';
 
       html += `<div class="article-item cite-article-item">
         <div class="cite-ref-num">[${refNum}]</div>
         <div class="cite-art-body">
           <div class="art-title"><a href="${url}" target="_blank">${escHtml(a.title)}</a></div>
+          ${titleCn ? `<div class="art-title-cn">${escHtml(titleCn)}</div>` : ''}
           <div class="art-meta">
             <a href="${jUrl}" class="art-journal" target="_blank">${escHtml(a.jName)}</a>
             <span>${a.year}${a.volume?' · Vol.'+a.volume:''}${a.issue?'('+a.issue+')':''}</span>
