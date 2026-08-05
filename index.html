@@ -2258,13 +2258,6 @@ Return ONLY a JSON array of indices, ordered by relevance (most relevant first):
       topArts = candidateArticles.slice(0, 5);
     }
 
-    // Floor: if too few articles and we have more candidates, supplement with articleScore
-    if (topArts.length < 3 && candidateArticles.length > topArts.length) {
-      const existingDois = new Set(topArts.map(a => a.doi));
-      const extraArts = candidateArticles.filter(a => !existingDois.has(a.doi)).slice(0, 5 - topArts.length);
-      topArts = topArts.concat(extraArts);
-    }
-
     // Step 3: Ask AI to insert citations directly into the paragraph
     const artList = topArts.map((a,i) =>
       `[${i+1}] ${a.title}. ${a.jName} (${a.year}). DOI: ${a.doi}`
@@ -2423,6 +2416,18 @@ function renderCiteResults(citeResult, articles) {
   const [y0, y1] = getYearRange();
   let html = '';
 
+  // Determine which articles were actually cited in the annotated paragraph
+  const citedRefs = new Set();
+  if (citeResult && citeResult.insertions) {
+    citeResult.insertions.forEach(ins => {
+      if (ins.ref) citedRefs.add(ins.ref);
+    });
+  }
+  // If no insertion metadata, keep all articles (fallback); otherwise show only cited ones
+  const displayedArticles = citedRefs.size > 0
+    ? articles.filter((a, i) => citedRefs.has(i + 1))
+    : articles;
+
   // ── Block 1: Annotated paragraph with red highlights ──
   if (citeResult && citeResult.annotated) {
     // Highlight [n] markers in red bold, and the sentence they appear in with light red bg
@@ -2449,7 +2454,7 @@ function renderCiteResults(citeResult, articles) {
   }
 
   // ── Block 2: Referenced articles with citation formats ──
-  if (articles.length > 0) {
+  if (displayedArticles.length > 0) {
     // Build maps from ref index → reason / Chinese title (from insertions)
     const reasonMap = {};
     const titleZhMap = {};
@@ -2463,10 +2468,10 @@ function renderCiteResults(citeResult, articles) {
     html += `<div class="card">
       <div class="articles-header">
         <div class="articles-title">参考文献详情</div>
-        <div class="articles-count">${articles.length} 篇 · ${y0}–${y1} 年</div>
+        <div class="articles-count">${displayedArticles.length} 篇 · ${y0}–${y1} 年</div>
       </div>`;
 
-    articles.forEach((a, i) => {
+    displayedArticles.forEach((a, i) => {
       const refNum = i + 1;
       const url = 'https://www.maxapress.com/article/doi/' + a.doi;
       const jUrl = 'https://www.maxapress.com/' + a.jId;
