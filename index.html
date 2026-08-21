@@ -817,7 +817,7 @@ a.cite-marker:hover { background: #f5b7b1; }
         <span class="cite-journal-sub">只从选定期刊推荐参考文献；留空则智能匹配全平台</span>
       </div>
       <div class="submit-row">
-        <span class="hint-text">支持中英文段落 · 匹配 2024 年至今 MAP 期刊文章</span>
+        <span class="hint-text" id="citeHint">支持中英文段落 · 智能匹配近 3 年 MAP 期刊文章</span>
         <button class="btn-primary" id="citeBtn" onclick="doCiteSearch()">
           <span id="citeBtnContent">智能推荐参考文献</span>
         </button>
@@ -986,7 +986,10 @@ const MAP_JOURNALS = [
   { id:"smartfor", name:"Smart Forestry", nameCN:"智慧林业", desc:"Smart Forestry (e-ISSN3142-8487)is an open access, online-only journal dedicated to integrating cutting-edge technologies into forest science and management.", keywords:["smart","智慧","forestry","林业","remote","sensing","遥感","monitoring","监测","big","data","大数据","ai","人工智能","uav","无人机","lidar","激光雷达","salt","salinity","stress","drought","abiotic","biotic","tolerance","resistance","盐","盐胁迫","胁迫","干旱","抗逆","耐盐","逆境","盐碱","cold","heat","heavy metal","重金属","water stress","osmotic","渗透","oxidative","氧化","ros"] },
   { id:"targetome", name:"Targetome", nameCN:"靶向组学", desc:"Targetome (PrintISSN 3071-0596;e-ISSN 3070-3808) is the official journal of and published by , which focuses on groundbreaking researches that uncover novel therapeutic targets with translational potential, driving innovation in drug discovery and advancing precision medicine.", keywords:["target","靶点","drug","药物","therapy","治疗","discovery","发现","screening","筛选","pharmacology","药理学","molecular","分子","docking","对接","traditional chinese medicine","中药","herbal","天然药物","network pharmacology","网络药理学","tcm","chinese medicine","精准医学","precision medicine","dna","rna","pcr","elisa","deg","go","kegg","crispr","gwas","sirna","nmr"] },
   { id:"vns", name:"Visual Neuroscience", nameCN:"视觉神经科学", desc:"Visual Neuroscience (e-ISSN 1469-8714) is an open access, and rigorously peer-reviewed journal, devoted to publishing experimental and clinical research on biology and disease mechanisms of visual neuroscience.", keywords:["visual","视觉","neuroscience","神经科学","retina","视网膜","cortex","皮层","perception","感知","eye","眼","vision","视力","neural","神经"] },
-  { id:"fra", name:"Forestry Research Advances", nameCN:"林业研究进展", desc:"Forestry Research Advances (e-ISSN 3143-1275)is an open access, online-only journal committed to serving as a platform for the dissemination of transformative discoveries in tree biology and forest ecosystems.", keywords:["forest","森林","forestry","林业","advances","进展","management","经营","ecology","生态","conservation","保护","ecosystem","生态系统","service","服务","salt","salinity","stress","drought","abiotic","biotic","tolerance","resistance","盐","盐胁迫","胁迫","干旱","抗逆","耐盐","逆境","盐碱","cold","heat","heavy metal","重金属","water stress","osmotic","渗透","oxidative","氧化","ros"] }
+  { id:"fra", name:"Forestry Research Advances", nameCN:"林业研究进展", desc:"Forestry Research Advances (e-ISSN 3143-1275)is an open access, online-only journal committed to serving as a platform for the dissemination of transformative discoveries in tree biology and forest ecosystems.", keywords:["forest","森林","forestry","林业","advances","进展","management","经营","ecology","生态","conservation","保护","ecosystem","生态系统","service","服务","salt","salinity","stress","drought","abiotic","biotic","tolerance","resistance","盐","盐胁迫","胁迫","干旱","抗逆","耐盐","逆境","盐碱","cold","heat","heavy metal","重金属","water stress","osmotic","渗透","oxidative","氧化","ros"] },
+  { id:"hortres", name:"Horticulture Research", nameCN:"园艺研究", desc:"Horticulture Research (e-ISSN 2052-7276), published by Oxford University Press, is an open access journal publishing original research on all aspects of horticultural science, including fruit, vegetable, flower, and ornamental crops, genetics, breeding, physiology, and stress biology.", external:true, issn:"2662-6810", source:"Oxford University Press (academic.oup.com/hr/)", keywords:["horticulture","园艺","fruit","果树","vegetable","蔬菜","flower","花卉","ornamental","观赏","breeding","育种","genomics","基因组","stress","胁迫","abiotic","非生物","photosynthesis","光合","hormone","激素","postharvest","采后","quality","品质","disease","病害","germplasm","种质"] },
+  { id:"plantphenomics", name:"Plant Phenomics", nameCN:"植物表型组学", desc:"Plant Phenomics (e-ISSN 2643-6515), published by Elsevier, is an open access journal devoted to all aspects of plant phenotyping, including high-throughput phenotyping, imaging, sensor technologies, trait analysis, and field robotics.", external:true, issn:"2643-6515", source:"Elsevier (sciencedirect.com/journal/plant-phenomics)", keywords:["phenomics","表型组","phenotyping","表型","trait","性状","high-throughput","高通量","imaging","成像","root","根","leaf","叶","yield","产量","remote","sensing","遥感","field","田间","robotics","机器人","phenotype","表型组学"] },
+  { id:"biodesign", name:"BioDesign Research", nameCN:"生物设计研究", desc:"BioDesign Research (e-ISSN 2693-1257), published by Elsevier, is an open access journal covering synthetic biology, genetic circuit design, genome editing, metabolic engineering, and biomanufacturing.", external:true, issn:"2693-1257", source:"Elsevier (sciencedirect.com/journal/biodesign-research)", keywords:["biodesign","生物设计","synthetic","biology","合成生物学","genetic","circuit","基因线路","genome","editing","基因组编辑","metabolic","engineering","代谢工程","chassis","底盘","biomanufacturing","生物制造","pathway","通路","igem"] }
 ];
 
 // ============================================================
@@ -1607,6 +1610,217 @@ const CN_EN = {
   "chip-seq":["chip-seq","chromatin immunoprecipitation sequencing","histone modification","tf binding"],
   "atac-seq":["atac-seq","assay for transposase-accessible chromatin","open chromatin","epigenomics"],
   "scrna-seq":["scrna-seq","single-cell rna sequencing","single cell transcriptomics","cell atlas"],
+
+  // ═══════════════════════════════════════════
+  // 作物/植物名补充 (2026-08-21 盲补，覆盖高频但缺失的物种)
+  // ═══════════════════════════════════════════
+  "油菜":["rapeseed","canola","brassica napus"],
+  "向日葵":["sunflower","helianthus annuus"],
+  "高粱":["sorghum","sorghum bicolor"],
+  "燕麦":["oat","oats","avena sativa"],
+  "大麦":["barley","hordeum vulgare"],
+  "黑麦":["rye","secale cereale"],
+  "豌豆":["pea","pisum sativum"],
+  "花生":["peanut","groundnut","arachis hypogaea"],
+  "芝麻":["sesame","sesamum indicum"],
+  "甜菜":["sugar beet","beta vulgaris"],
+  "橄榄":["olive","olea europaea"],
+  "石榴":["pomegranate","punica granatum"],
+  "荔枝":["lychee","litchi chinensis"],
+  "龙眼":["longan","dimocarpus longan"],
+  "枇杷":["loquat","eriobotrya japonica"],
+  "山楂":["hawthorn","crataegus"],
+  "枣":["jujube","ziziphus jujuba","chinese date"],
+  "核桃":["walnut","juglans regia"],
+  "板栗":["chestnut","castanea"],
+  "腰果":["cashew","anacardium occidentale"],
+  "杏":["apricot","prunus armeniaca"],
+  "无花果":["fig","ficus carica"],
+  "亚麻":["flax","linseed","linum usitatissimum"],
+  "蓖麻":["castor","ricinus communis"],
+
+  // ═══════════════════════════════════════════
+  // 农艺性状 & 抗性 & 育种 (2026-08-21 盲补)
+  // ═══════════════════════════════════════════
+  "抗旱":["drought resistance","drought tolerance"],
+  "抗虫":["insect resistance","pest resistance"],
+  "耐涝":["waterlogging tolerance","flooding tolerance"],
+  "耐冷":["cold tolerance","chilling tolerance"],
+  "抗寒":["cold hardiness","freezing tolerance"],
+  "春化":["vernalization"],
+  "抗倒伏":["lodging resistance","lodging"],
+  "杂种优势":["heterosis","hybrid vigor"],
+  "雄性不育":["male sterility","cytoplasmic male sterility","cms"],
+  "分子育种":["molecular breeding","marker-assisted breeding"],
+  "基因组选择":["genomic selection","gs"],
+  "基因聚合":["gene pyramiding"],
+  "表型":["phenotype","phenotyping","phenotype analysis"],
+  "高通量表型":["high-throughput phenotyping","phenomics","phenomic"],
+  "表型组":["phenomics","phenome"],
+  "离子组":["ionomics","ionome"],
+  "碱基编辑":["base editing","cytosine base editor","adenine base editor"],
+  "引导编辑":["prime editing"],
+  "害虫":["pest","insect pest","insect"],
+  "杂草":["weed","weeds","weedy"],
+  "天敌":["natural enemy","predator","parasitoid","biological enemy"],
+  "共生":["symbiosis","symbiotic","mutualism"],
+  "不定根":["adventitious root","adventitious roots"],
+  "花粉育性":["pollen fertility","pollen viability"],
+  "多年生":["perennial"],
+  "一年生":["annual"],
+  "无性繁殖":["vegetative propagation","asexual propagation","clonal propagation"],
+  "土壤肥力":["soil fertility","soil fertility quality"],
+
+  // ═══════════════════════════════════════════
+  // 50刊词汇审计补全 (2026-08-21)：50刊自带中文关键词与 CN_EN 比对，
+  // 175 个缺口中筛出精确、专有、有唯一英文对应物的领域词补齐；
+  // 跳过"科学/方法/数据/理论/技术"等通用噪声词（加了会制造误匹配）。
+  // ═══════════════════════════════════════════
+  "藤":["rattan"],
+  "香料":["spice","spices"],
+  "桦树":["birch"],
+  "木本":["woody"],
+  "根际":["rhizosphere"],
+  "幼苗":["seedling","seedlings"],
+  "造林":["afforestation"],
+  "恢复":["restoration","recovery"],
+  "植被":["vegetation"],
+  "橡树":["oak"],
+  "木材":["wood","timber"],
+  "接种":["inoculation","inoculant"],
+  "芽孢杆菌":["bacillus"],
+  "生物膜":["biofilm"],
+  "苗圃":["nursery"],
+  "重新造林":["reforestation"],
+  "观赏":["ornamental"],
+  "矮牵牛":["petunia"],
+  "饲草":["forage"],
+  "牧场":["pasture"],
+  "羊茅":["fescue"],
+  "狗牙根":["bermuda grass","cynodon dactylon"],
+  "草原":["grassland","steppe"],
+  "果树":["fruit tree","fruit trees"],
+  "李":["plum"],
+  "果园":["orchard"],
+  "作物":["crop","crops"],
+  "蔬菜":["vegetable","vegetables"],
+  "林业":["forestry","forest"],
+  "热带":["tropical"],
+  "饮料":["beverage"],
+  "风味":["flavor","flavour"],
+  "可食":["edible"],
+  "乳液":["emulsion"],
+  "蘑菇":["mushroom","mushrooms"],
+  "真菌学":["mycology"],
+  "病原":["pathogen","pathogens"],
+  "霉菌":["mold","mould"],
+  "地衣":["lichen"],
+  "草本":["herb","herbal","herbaceous"],
+  "次生":["secondary"],
+  "物种":["species"],
+  "园艺":["horticulture","horticultural"],
+  "农学":["agronomy","agronomic"],
+  "化学":["chemistry","chemical"],
+  "物理":["physics","physical"],
+  "生物质":["biomass"],
+  "能源":["energy"],
+  "生物地球化学":["biogeochemical"],
+  "元素":["element","elements"],
+  "微量":["trace","micro"],
+  "低碳":["low-carbon","low carbon"],
+  "太阳":["solar"],
+  "自主":["autonomous"],
+  "车辆":["vehicle","vehicles"],
+  "微型":["micro","miniature"],
+  "飞行":["flight","flying","aerial"],
+  "空中":["aerial","airborne"],
+  "空气动力":["aerodynamic","aerodynamics"],
+  "无线":["wireless"],
+  "充电":["charging"],
+  "微波":["microwave"],
+  "感应":["inductive","induction"],
+  "谐振":["resonance","resonant"],
+  "采集":["harvesting"],
+  "本体":["ontology"],
+  "推理":["reasoning","inference"],
+  "语义":["semantic","semantics"],
+  "自然语言":["natural language"],
+  "人工智能":["artificial intelligence","ai"],
+  "机器学习":["machine learning"],
+  "反应":["reaction"],
+  "动力学":["kinetics"],
+  "机理":["mechanism","mechanisms"],
+  "计算":["computational","computation"],
+  "推断":["inference"],
+  "贝叶斯":["bayesian"],
+  "伦理":["ethics","ethical"],
+  "自动化":["automation","automated"],
+  "种质":["germplasm"],
+  "保护":["conservation","protection"],
+  "野生":["wild"],
+  "近缘":["relative","related"],
+  "福利":["welfare"],
+  "农田":["farmland","cropland"],
+  "生物污染物":["biocontaminant"],
+  "癌症":["cancer"],
+  "护理":["care","nursing"],
+  "肿瘤":["oncology","tumor","tumour"],
+  "姑息":["palliative"],
+  "心理":["psychology","psychological"],
+  "治疗":["therapy","treatment"],
+  "患者":["patient","patients"],
+  "生物过程":["bioprocess"],
+  "生物反应器":["bioreactor"],
+  "合成":["synthesis","synthetic"],
+  "生物学":["biology","biological"],
+  "生物技术":["biotechnology","biotech"],
+  "比较":["comparative"],
+  "结直肠":["colorectal"],
+  "肝":["liver","hepatic"],
+  "胰腺":["pancreatic","pancreas"],
+  "渔业":["fishery","fisheries"],
+  "海洋":["marine"],
+  "淡水":["freshwater"],
+  "吸烟":["smoking"],
+  "戒烟":["cessation","smoking cessation"],
+  "烟草":["tobacco"],
+  "尼古丁":["nicotine"],
+  "干预":["intervention"],
+  "公共卫生":["public health"],
+  "系统学":["systematics"],
+  "生物地理":["biogeography"],
+  "儿科":["pediatric","paediatric"],
+  "糖尿病":["diabetes"],
+  "一型":["type 1"],
+  "胰岛素":["insulin"],
+  "青少年":["adolescent","adolescents"],
+  "激光雷达":["lidar"],
+  "靶点":["target","targets"],
+  "药物":["drug","drugs"],
+  "发现":["discovery"],
+  "筛选":["screening","screen"],
+  "药理学":["pharmacology"],
+  "对接":["docking"],
+  "中药":["traditional chinese medicine","tcm","chinese medicine"],
+  "天然药物":["natural medicine","herbal medicine"],
+  "网络药理学":["network pharmacology"],
+  "精准医学":["precision medicine"],
+  "视觉":["visual"],
+  "神经科学":["neuroscience"],
+  "视网膜":["retina"],
+  "皮层":["cortex"],
+  "感知":["perception"],
+  "视力":["vision"],
+  "神经":["neural","nerve","neurological"],
+  "应急":["emergency"],
+  "灾害":["disaster"],
+  "韧性":["resilience","resilient"],
+  "淀粉":["starch"],
+  "脂质":["lipid","lipids"],
+  "多糖":["polysaccharide","polysaccharides"],
+  "废弃物":["waste"],
+  "回收":["recycling","recovery"],
+  "肥料":["fertilizer","fertiliser","manure"],
 };
 
 // ============================================================
@@ -1620,10 +1834,11 @@ let journalSelectLabel = '全部期刊';
 let currentCiteJournal = 'all';
 let citeJournalLabel = '全部期刊';
 
-// 搜索范围：2024 年至今（用户明确要求 24 年以来的文章）
+// 搜索范围：滚动 3 年窗口（用户规则：固定为"当前年-2 ~ 当前年"，
+// 即 26 年→24-26、27 年→25-27……每年自动顺移，无需手动改）
 function getYearRange() {
   const now = new Date().getFullYear();
-  return [2024, now];
+  return [now - 2, now];
 }
 
 // Fetch ONE page of articles from MAP via proxy
@@ -1641,9 +1856,81 @@ async function fetchOne(url) {
 }
 
 // Fetch articles from MAP via proxy — guarantees full 2024-present coverage
+// External (non-MAP) journals: no MAP article API yet. When a real search
+// interface for them is available (e.g. OUP / Elsevier APIs, or the colleague's
+// vector DB), add the dispatch here and remove `external:true` from MAP_JOURNALS.
+function isExternalJournal(id) {
+  const j = MAP_JOURNALS.find(x => x.id === id);
+  return !!(j && j.external);
+}
+
+// Fetch articles for external (non-MAP) journals from OpenAlex.
+// OpenAlex is free, sends CORS "*" (browser can call it directly, no Worker needed),
+// and returns abstracts (as an inverted index) for virtually all articles including
+// very recent ones — unlike CrossRef/Semantic Scholar which miss many Elsevier abstracts.
+async function fetchExternalArticles(j) {
+  const issn = j.issn;
+  if (!issn) return [];
+  const startY = new Date().getFullYear() - 2; // 与 MAP 同步：滚动 3 年窗口
+  const url = 'https://api.openalex.org/works?filter=primary_location.source.issn:' + encodeURIComponent(issn) +
+    ',from_publication_date:' + startY + '-01-01&sort=publication_date:desc&per-page=200&mailto=map-search-tool@example.com';
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) return [];
+    const data = await resp.json();
+    const items = (data && data.results) || [];
+    const out = [];
+    for (const it of items) {
+      // Reconstruct abstract text from OpenAlex inverted index
+      let abs = '';
+      const ai = it.abstract_inverted_index;
+      if (ai && Object.keys(ai).length) {
+        let maxi = 0;
+        for (const ps of Object.values(ai)) for (const p of ps) if (p > maxi) maxi = p;
+        const arr = new Array(maxi + 1).fill('');
+        for (const w of Object.keys(ai)) for (const p of ai[w]) arr[p] = w;
+        abs = arr.join(' ').trim();
+      }
+      abs = stripHtml(abs).replace(/^ABSTRACT\s*/i, '').replace(/^[^\w\u4e00-\u9fff]+/, '').trim();
+      const doi = (it.doi || '').replace(/^https?:\/\/(dx\.)?doi\.org\//i, '');
+      out.push({
+        titleEn: stripHtml(it.title || ''),
+        abstractinfoEn: abs,
+        doi: doi,
+        year: it.publication_year || '',
+        volume: (it.biblio && it.biblio.volume) || '',
+        issue: (it.biblio && it.biblio.issue) || '',
+        classifyinfoEn: (it.type || 'article').toString().replace(/^types:/, '').toUpperCase(),
+        jId: j.id, jName: j.name
+      });
+    }
+    // de-duplicate by DOI
+    const seen = new Set();
+    return out.filter(a => {
+      if (a.doi && seen.has(a.doi)) return false;
+      if (a.doi) seen.add(a.doi);
+      return true;
+    });
+  } catch (e) {
+    console.warn('OpenAlex fetch failed for', j.id, e.message);
+    return [];
+  }
+}
+
 async function fetchArticles(publisherId) {
   const key = publisherId;
   const now = Date.now();
+
+  // External (non-MAP) journals: fetch from OpenAlex (free, CORS-enabled, includes abstracts)
+  if (isExternalJournal(publisherId)) {
+    if (CACHE[key] && (now - CACHE[key].ts < 3600000)) return CACHE[key].data;
+    const j = MAP_JOURNALS.find(x => x.id === publisherId);
+    if (!j) return [];
+    const data = await fetchExternalArticles(j);
+    CACHE[key] = { data, ts: now };
+    return data;
+  }
+
   if (CACHE[key] && (now - CACHE[key].ts < 3600000)) return CACHE[key].data;
 
   const [y0, y1] = getYearRange();
@@ -1660,7 +1947,7 @@ async function fetchArticles(publisherId) {
       const yr = await Promise.all(yearTasks);
       for (const r of yr) all = all.concat(r);
     }
-    // 3) 年份过滤（2024-至今）+ 按 doi 去重
+    // 3) 年份过滤（滚动 3 年窗口）+ 按 doi 去重
     const seen = new Set();
     const out = [];
     for (const rec of all) {
@@ -1769,36 +2056,64 @@ function expandQueryTerm(term) {
 // rather than just counting individual keyword hits independently.
 function parseQueryRelations(query) {
   const q = (query || '').toLowerCase();
-  // Chinese pattern: "X 对/对于 Y 的影响/作用/效应/响应"  (X may contain 和/与/、)
-  const mZh = q.match(/(.+?)\s*(对|对于|作用于|影响)\s*(.+?)\s*(的影响|影响|的作用|的效应|的响应|产生|的调控)/);
-  // English pattern: "effect of X on Y" — target captured greedily to end of string
-  //  (group indices aligned with mZh: [1]=subject, [2]=connector, [3]=target)
-  const mEn = q.match(/\b(?:effect|effects|impact|impacts|role)\s+of\s+(.+?)\s+(on|in|upon)\s+(.+)$/);
-  const m = mZh || mEn;
-  if (!m) return null;
-  const subjectPart = m[1];
-  const targetPart = m[3];
-
-  // Stop words to drop from subject/target token lists (both CN and EN conjunctions)
-  const STOP = new Set(['和','与','及','以及','对','对于','的',
-    'and','or','with','the','of','on','in','upon','to','for','a','an']);
-
   const subjects = [];
   const targets = [];
 
-  // Split subjects by conjunctions (和/与/及/、/，/,/空格/and/or/with)
-  const subjectTokens = subjectPart
-    .split(/和|与|及|以及|、|,|，|\s+|\band\b|\bor\b|\bwith\b/)
-    .filter(x => x.length > 0 && !STOP.has(x));
-  for (const st of subjectTokens) {
-    expandQueryTerm(st).forEach(e => subjects.push(e));
-  }
+  // Stop words to drop from subject/target token lists (both CN and EN)
+  const STOP = new Set(['和','与','及','以及','对','对于','的','在','中','内','里','之间',
+    'and','or','with','the','of','on','in','upon','to','for','a','an','by','via']);
 
-  // Targets: split + expand (handles compounds like 花朵发育 / flower development)
-  const targetTokens = splitTokens(targetPart).filter(x => !STOP.has(x));
-  for (const tt of targetTokens) {
-    expandQueryTerm(tt).forEach(e => targets.push(e));
-  }
+  // Split a clause into tokens on conjunctions/spaces, drop stopwords
+  const splitConj = (s) => (s || '').split(/和|与|及|以及|、|,|，|\s+|\band\b|\bor\b|\bwith\b/)
+    .map(x => x.trim()).filter(x => x.length > 0 && !STOP.has(x));
+  const pushPart = (part, into) => {
+    for (const tok of splitConj(part)) expandQueryTerm(tok).forEach(e => into.push(e));
+  };
+  // One-directional relation: X → Y  (subject → target)
+  const addPair = (subj, tgt) => {
+    if (!subj || !subj.trim() || !tgt || !tgt.trim()) return;
+    pushPart(subj, subjects);
+    pushPart(tgt, targets);
+  };
+  // Co-occurrence relation: X ↔ Y  (互作/比较/关联 — both directions)
+  const addBoth = (a, b) => { addPair(a, b); addPair(b, a); };
+  // Strip a trailing "的…" noun phrase so the target is just the core term
+  const stripTail = (s) => (s || '')
+    .replace(/(的?影响|的?作用|的?效应|的?响应|产生|的?调控|的?机制|的?表达|的?功能|的?活性|的?研究|的?分析|的?比较|的?差异)$/, '')
+    .replace(/\s+(vs\.?|versus)\s+.+$/, '')
+    .trim();
+
+  // ── Pattern 1 (CN): X 对/对于/作用于/影响/调控/调节/促进/抑制/介导 Y ──
+  const mZh = q.match(/(.+?)\s*(对|对于|作用于|影响|调控|调节|促进|抑制|介导)\s*(.+)/);
+  if (mZh) addPair(mZh[1], stripTail(mZh[3]));
+
+  // ── Pattern 2 (CN): X 与/和 Y 互作/相互作用/共生/比较/对比/差异/关联/协同 ──
+  const mZhCo = q.match(/(.+?)\s*(与|和|及|以及|、)\s*(.+?)\s*(互作|相互作用|共生|比较|对比|差异|关联|协同)/);
+  if (mZhCo) addBoth(mZhCo[1], mZhCo[3]);
+
+  // ── Pattern 2b (CN): 比较/对比/对照 X 与/和 Y  (比较词在前) ──
+  const mZhCmp = q.match(/(?:比较|对比|对照)\s*(.+?)\s*(与|和|及|以及|、)\s*(.+)/);
+  if (mZhCmp) addBoth(mZhCmp[1], stripTail(mZhCmp[3]));
+
+  // ── Pattern 3 (CN): X 在 Y 中/内/里 的 (机制/作用/表达…) → Y=context(subject), X=focus(target) ──
+  const mZhIn = q.match(/(.+?)\s*在\s*(.+?)\s*(中|内|里|之间)\s*(的?机制|的?作用|的?表达|的?功能|的?研究)?/);
+  if (mZhIn) addPair(mZhIn[2], mZhIn[1]);
+
+  // ── Pattern 4 (EN): "effect/role of X on Y" ──
+  const mEn = q.match(/\b(?:effect|effects|impact|impacts|role)\s+of\s+(.+?)\s+(on|in|upon)\s+(.+?)(?:\s|$)/);
+  if (mEn) addPair(mEn[1], mEn[3]);
+
+  // ── Pattern 5 (EN): "X regulates/controls/promotes/inhibits/modulates/mediates… Y" ──
+  const mEnReg = q.match(/\b(.+?)\s+(regulates?|controls?|promotes?|inhibits?|modulates?|mediates?|represses?|suppresses?|activates?)\s+(.+?)(?:\s|$)/);
+  if (mEnReg) addPair(mEnReg[1], mEnReg[3]);
+
+  // ── Pattern 6 (EN): "X interacts/associates/correlates with Y" ──
+  const mEnCo = q.match(/\b(.+?)\s+(interacts?|associates?|correlates?|co[- ]?occurs?)\s+with\s+(.+?)(?:\s|$)/);
+  if (mEnCo) addBoth(mEnCo[1], mEnCo[3]);
+
+  // ── Pattern 7 (EN): "comparison of X and Y" / "X vs Y" ──
+  const mEnCmp = q.match(/\bcomparison\s+of\s+(.+?)\s+and\s+(.+?)(?:\s|$)/) || q.match(/\b(.+?)\s+vs\.?\s+(.+?)(?:\s|$)/);
+  if (mEnCmp) addBoth(mEnCmp[1], mEnCmp[2]);
 
   if (!subjects.length || !targets.length) return null;
   return { subjects: [...new Set(subjects)], targets: [...new Set(targets)] };
@@ -2077,7 +2392,7 @@ async function doCiteSearch() {
 
   try {
     // ── Build journal index for AI (id + name + nameCN + desc + keywords) ──
-    const journalIndex = MAP_JOURNALS.map(j =>
+    const journalIndex = MAP_JOURNALS.filter(j => !j.external || j.issn).map(j =>
       `- ${j.id}: ${j.name}${j.nameCN?' ('+j.nameCN+')':''}\n  范围描述: ${j.desc || '无'}\n  关键词(已按段落相关性排序，命中词在前): ${rankKeywordsForPara(j, para)}`
     ).join('\n');
 
@@ -2597,6 +2912,18 @@ function copyText(btn) {
   } else {
     attachChips();
   }
+})();
+
+// 动态刷新检索范围提示（滚动 3 年窗口：当前年-2 ~ 当前年）
+(function updateRangeHint() {
+  const run = () => {
+    const el = document.getElementById('citeHint');
+    if (!el) return;
+    const [y0, y1] = getYearRange();
+    el.textContent = '支持中英文段落 · 智能匹配 ' + y0 + '–' + y1 + ' 年 MAP 期刊文章';
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
+  else run();
 })();
 
 // ── RIS 下载 ──
