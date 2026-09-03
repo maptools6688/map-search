@@ -2598,13 +2598,14 @@ CRITICAL RULES for citation placement:
 3. **Methods and results that clearly belong to the author's own work may be left without citations**, but background and gap sentences should NOT be left bare if a relevant article exists.
 4. **Distribute citations across different sentences.** Do NOT stack all [1]…[15] at the end of one sentence. Each cited sentence should normally have 1-3 markers.
 5. Insert "[n]" markers at the END of those sentences (before the period), using the article numbers above.
+   **CRITICAL FORMAT**: markers MUST be wrapped in square brackets like "[1]", "[2]", "[3]". Do NOT output plain numbers like "1", "2", or "3,4". If two articles are cited at the same spot, output them as separate bracketed markers: "[3][4]". If the input paragraph already contains other old citation numbers without brackets, leave them unchanged, but YOUR new markers must always use "[n]".
 6. Return the COMPLETE paragraph with citations inserted. Do not change any other words.
 7. Also return: for each article [n] that you actually inserted in the paragraph, write a brief reason IN CHINESE (1-2 sentences) explaining WHY this article supports the paragraph content. Skip articles that you did not cite.
 8. For each inserted article [n], also provide a concise Chinese translation of its English title in the field 'titleZh'. Make it natural and readable for Chinese researchers (not word-for-word literal).
 
 Return ONLY valid JSON (no markdown), exactly this format:
 {
-  "annotated": "...full paragraph text with [n] markers inserted...",
+  "annotated": "...full paragraph text with [1] markers [2][3] inserted before periods...",
   "insertions": [
     { "ref": 1, "after": "first 10 words of the sentence where [1] was inserted", "reason": "用中文写一句说明该参考文献为何支撑本段论点", "titleZh": "中文标题翻译" },
     { "ref": 2, "after": "first 10 words of the sentence where [2] was inserted", "reason": "用中文写一句说明该参考文献为何支撑本段论点", "titleZh": "中文标题翻译" }
@@ -2727,6 +2728,28 @@ function renderArticleList(articles, query, totalCandidates) {
   </div>`;
 }
 
+// Fallback: DeepSeek occasionally returns plain numbers like "1" or "3,4" instead of
+// "[1]" / "[3][4]". This normalizes such markers so the renderer can highlight them.
+function normalizeCiteMarkers(text, insertions) {
+  if (!text || !insertions || !insertions.length) return text;
+  const refSet = new Set(insertions.map(i => i.ref).filter(r => r > 0));
+  if (!refSet.size) return text;
+  let t = text;
+  // Case A: plain numbers right BEFORE a period (e.g. "regulation1.").
+  t = t.replace(/(\d{1,2}(?:,\s*\d{1,2})+|\d{1,2})(?=\.(?:\s|$))/g, (m, p1) => {
+    const nums = p1.split(',').map(s => parseInt(s.trim(), 10));
+    if (!nums.every(n => refSet.has(n))) return m;
+    return nums.map(n => `[${n}]`).join('');
+  });
+  // Case B: plain numbers right AFTER a period (current model drift: "regulation.1 Next").
+  t = t.replace(/(\.\s*)(\d{1,2}(?:,\s*\d{1,2})+|\d{1,2})(?=\s|$)/g, (m, sp, p1) => {
+    const nums = p1.split(',').map(s => parseInt(s.trim(), 10));
+    if (!nums.every(n => refSet.has(n))) return m;
+    return sp + nums.map(n => `[${n}]`).join('');
+  });
+  return t;
+}
+
 function renderCiteResults(citeResult, articles) {
   const [y0, y1] = getYearRange();
   let html = '';
@@ -2745,8 +2768,10 @@ function renderCiteResults(citeResult, articles) {
 
   // ── Block 1: Annotated paragraph with red highlights ──
   if (citeResult && citeResult.annotated) {
+    // Normalize first: ensure inserted refs are bracketed even if model output plain numbers.
+    const normalizedAnnotated = normalizeCiteMarkers(citeResult.annotated, citeResult.insertions);
     // Highlight [n] markers in red bold, and the sentence they appear in with light red bg
-    let annotated = escHtml(citeResult.annotated);
+    let annotated = escHtml(normalizedAnnotated);
     // Highlight citation markers [1],[2],... in red
     annotated = annotated.replace(/\[(\d+)\]/g, (m, n) => {
       const idx = parseInt(n) - 1;
@@ -2755,8 +2780,8 @@ function renderCiteResults(citeResult, articles) {
       return `<a class="cite-marker" href="${url}" target="_blank" title="${art ? escHtml(art.title) : ''}">[${n}]</a>`;
     });
 
-    // Copy plain text (original annotated without HTML)
-    const plainAnnotated = citeResult.annotated;
+    // Copy plain text (normalized annotated without HTML)
+    const plainAnnotated = normalizedAnnotated;
     const escAnnotated = plainAnnotated.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
     html += `<div class="card">
