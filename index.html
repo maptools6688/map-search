@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>MAP 文献推荐 — Maximum Academic Press</title>
 <style>
 :root {
@@ -2736,15 +2739,15 @@ function normalizeCiteMarkers(text, insertions) {
   if (!refSet.size) return text;
   let t = text;
   // Case A: plain numbers right BEFORE a period (e.g. "regulation1.").
-  t = t.replace(/(\d{1,2}(?:,\s*\d{1,2})+|\d{1,2})(?=\.(?:\s|$))/g, (m, p1) => {
-    const nums = p1.split(',').map(s => parseInt(s.trim(), 10));
-    if (!nums.every(n => refSet.has(n))) return m;
+  t = t.replace(/(\d{1,2}(?:[,\-–]\s*\d{1,2})*)(?=\.(?:\s|$))/g, (m, p1) => {
+    const nums = p1.split(/[,\-–]/).map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
+    if (!nums.length || !nums.every(n => refSet.has(n))) return m;
     return nums.map(n => `[${n}]`).join('');
   });
   // Case B: plain numbers right AFTER a period (current model drift: "regulation.1 Next").
-  t = t.replace(/(\.\s*)(\d{1,2}(?:,\s*\d{1,2})+|\d{1,2})(?=\s|$)/g, (m, sp, p1) => {
-    const nums = p1.split(',').map(s => parseInt(s.trim(), 10));
-    if (!nums.every(n => refSet.has(n))) return m;
+  t = t.replace(/(\.\s*)(\d{1,2}(?:[,\-–]\s*\d{1,2})*)(?=\s|$)/g, (m, sp, p1) => {
+    const nums = p1.split(/[,\-–]/).map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
+    if (!nums.length || !nums.every(n => refSet.has(n))) return m;
     return sp + nums.map(n => `[${n}]`).join('');
   });
   return t;
