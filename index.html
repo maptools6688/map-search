@@ -2761,14 +2761,21 @@ function renderCiteResults(citeResult, articles) {
   const [y0, y1] = getYearRange();
   let html = '';
 
-  // Determine which articles were actually cited in the annotated paragraph
+  // Determine which articles were actually cited by scanning the annotated paragraph first.
+  // If model honors no-padding rule and inserts no markers, details must reflect that.
   const citedRefs = new Set();
-  if (citeResult && citeResult.insertions) {
+  if (citeResult && citeResult.annotated) {
+    const normalizedAnnotated = normalizeCiteMarkers(citeResult.annotated, citeResult.insertions || []);
+    const markerMatches = normalizedAnnotated.match(/\[(\d+)\]/g) || [];
+    markerMatches.forEach(m => citedRefs.add(parseInt(m.slice(1, -1), 10)));
+  }
+  // Fallback: only if annotated is empty/missing do we trust insertions metadata.
+  if (citedRefs.size === 0 && citeResult && citeResult.insertions) {
     citeResult.insertions.forEach(ins => {
       if (ins.ref) citedRefs.add(ins.ref);
     });
   }
-  // If no insertion metadata, keep all articles (fallback); otherwise show only cited ones
+  // If no refs at all, keep all articles as fallback (legacy safety); otherwise show only cited ones
   const displayedArticles = citedRefs.size > 0
     ? articles.filter((a, i) => citedRefs.has(i + 1))
     : articles;
