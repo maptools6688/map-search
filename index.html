@@ -2651,6 +2651,27 @@ Return ONLY valid JSON (no markdown), exactly this format:
     if (citeResult && (!citeResult.insertions || !citeResult.insertions.length) && topArts.length > 0) {
       const fb = buildFallbackCitations(topArts, para);
       if (fb) {
+        // Translate the fallback articles' English titles via a lightweight
+        // DeepSeek call, so the detail cards show the same Chinese-title line
+        // as AI-generated recommendations. Failure is non-fatal: the cards
+        // simply render without the translation.
+        try {
+          const list = fb.insertions.map(ins => (topArts[ins.ref - 1] || {}).title || '');
+          if (list.filter(Boolean).length) {
+            const zhPrompt = `将下列英文论文标题翻译成简洁自然的中文标题，面向中文科研读者，符合中文科技论文标题习惯，不要逐词直译，不要输出任何解释。\n\n${list.map((t, i) => `${i + 1}. ${t}`).join('\n')}\n\n只返回 JSON，格式：{"1":"中文标题一","2":"中文标题二"}`;
+            const zhResp = await callDeepSeek(zhPrompt, 400);
+            const zhMatch = zhResp.match(/\{[\s\S]*\}/);
+            const zhMap = zhMatch ? JSON.parse(zhMatch[0]) : null;
+            if (zhMap && typeof zhMap === 'object') {
+              // zhMap keys follow the insertion order above (1..N), NOT ins.ref
+              fb.insertions.forEach((ins, i) => {
+                if (!ins.titleZh && zhMap[String(i + 1)]) ins.titleZh = String(zhMap[i + 1]);
+              });
+            }
+          }
+        } catch (e) {
+          console.warn('[cite] Fallback title translation failed:', e.message);
+        }
         citeResult = { ...citeResult, annotated: fb.annotated, insertions: fb.insertions, _fallback: true };
       }
     }
@@ -2787,45 +2808,78 @@ function normalizeCiteMarkers(text, insertions) {
 // ── Fallback citation builder ──
 // DeepSeek sometimes returns an empty 'insertions' array even when the candidate
 // pool contains clearly relevant articles (over-conservatism). As a safety net,
-// we programmatically place markers for the top 1-3 articles at the paragraphs
-// with the strongest token overlap. This guarantees the user sees actionable
-// recommendations while preserving the original paragraph text.
+// we use the same articleScore() function that powers the recall layer to pick
+// the best (paragraph, article) pairs. This keeps fallback recommendations
+// consistent with the ranked candidate pool and avoids matching on generic
+// words like "vegetative growth". Each paragraph gets at most one marker,
+// and unrelated articles are filtered out by a score threshold.
 function buildFallbackCitations(articles, para) {
   if (!articles || !articles.length || !para) return null;
   const paragraphs = para.split(/\n\s*\n/).filter(p => p.trim());
   if (!paragraphs.length) return null;
 
-  const selected = articles.slice(0, Math.min(articles.length, 3));
-  const placements = [];
+  const MIN_SCORE = 10;          // paragraph-level threshold; the candidate pool itself is already ranked by relevance to the full input
+  const MAX_REFS = 3;            // same cap as the original fallback
 
-  selected.forEach((a, idx) => {
-    const ref = idx + 1;
-    const text = ((a.title || '') + ' ' + (a.abstract || '')).toLowerCase();
-    const tokens = new Set(text.split(/[^a-z0-9]+/).filter(t => t.length >= 2));
+  // Step 1: use the top-ranked articles from the main pipeline as fallback
+  // candidates. They have already passed articleScore() against the focused
+  // Step1/Step2 query terms, so we avoid re-ranking them with a loose
+  // paragraph-as-query that rewards generic-word matches (e.g. a UGT paper
+  // that simply contains "flowering" many times).
+  const candidates = articles.slice(0, Math.min(articles.length, MAX_REFS));
+  if (!candidates.length) return null;
+
+  // Step 2: for each candidate, find the most semantically relevant paragraph.
+  // We build a compact query from gene/protein names plus meaningful terms to
+  // keep the matching focused on key concepts rather than generic English words.
+  const STOP_WORDS = new Set(['the','and','for','are','was','were','been','have','has','had','this','that','with','from','they','their','there','these','those','can','will','would','could','should','may','might','must','into','over','under','during','before','after','while','when','where','because','since','until','although','however','therefore','thus','hence','moreover','furthermore','nevertheless','otherwise','meanwhile','subsequently','consequently','additionally','notably','particularly','especially','significantly','specifically','similarly','according','following','within','without','through','throughout','against','towards','upon','about','across','around','behind','beside','besides','beyond','despite','except','inside','outside','via','including','regarding','concerning','involving','relating','one','two','three','four','five','six','seven','eight','nine','ten','first','second','third','last','new','high','low','large','small','long','different','same','various','several','many','most','more','less','much','such','only','also','well','here','both','either','neither','whether','between','among','stem','cell','role','roles','function','functions','factor','factors','gene','genes','protein','proteins','family','families','complex','complexes','pathway','pathways','network','networks','system','systems','process','processes','mechanism','mechanisms','regulation','regulations','control','controls','activity','activities','expression','level','levels','pattern','patterns','dynamic','dynamics','change','changes','effect','effects','lead','leads','result','results','cause','caused','due','use','used','using','approach','analysis','study','studies','report','reports','data','show','shows','shown','suggest','suggests','demonstrate','demonstrates','indicate','indicates','reveal','reveals','identify','identifies','characterize','characterizes','determine','determines','examine','examines','investigate','investigates','evaluate','evaluates','assess','assesses','compare','compares','establish','establishes','confirm','confirms','support','supports']);
+
+  function buildParagraphQuery(p) {
+    const cleanP = p.replace(/\[\d+([–,]\d+)*\]/g, '').trim();
+    const rawTokens = cleanP.split(/[^a-zA-Z0-9]+/).filter(t => t.length >= 2);
+    const geneTerms = [...new Set(rawTokens.filter(t => /^[A-Z][A-Z0-9]{0,5}$/.test(t)))].slice(0, 10);
+    const contentTerms = [...new Set(rawTokens
+      .filter(t => /^[a-zA-Z]{4,}$/.test(t) && !STOP_WORDS.has(t.toLowerCase()))
+      .map(t => t.toLowerCase()))].slice(0, 15);
+    const queryTerms = geneTerms.length
+      ? [...geneTerms.map(t => t.toLowerCase()), ...contentTerms]
+      : contentTerms;
+    return queryTerms.slice(0, 25).join(' ');
+  }
+
+  const chosen = [];
+  const usedParaIdx = new Set();
+  for (const a of candidates) {
     let best = { score: -1, para: '', paraIdx: -1 };
     paragraphs.forEach((p, pi) => {
-      const pt = p.toLowerCase().split(/[^a-z0-9]+/).filter(t => t.length >= 2);
-      const score = pt.filter(t => tokens.has(t)).length;
+      if (usedParaIdx.has(pi)) return;
+      const query = buildParagraphQuery(p);
+      if (!query) return;
+      const score = articleScore(a.title || '', a.abstract || '', query);
       if (score > best.score) best = { score, para: p, paraIdx: pi };
     });
-    if (best.para) {
-      const p = best.para.trim();
-      const stem = p.replace(/[.!?]+$/, '').trim();
-      const idxInPara = para.indexOf(p);
-      if (idxInPara !== -1) {
-        const insertPos = idxInPara + (stem.length > 0 ? stem.length : p.length);
-        placements.push({ pos: insertPos, ref, para: p });
-      }
+    if (best.score >= MIN_SCORE) {
+      usedParaIdx.add(best.paraIdx);
+      // ref MUST be the article's 1-based index in the full articles array:
+      // the renderer resolves refs via articles[ref-1], so a local counter
+      // would point at the wrong article whenever a middle candidate is skipped.
+      const articleIdx = candidates.indexOf(a);
+      chosen.push({ article: a, articleIdx, para: best.para, paraIdx: best.paraIdx, score: best.score, ref: articleIdx + 1 });
     }
-  });
+    if (chosen.length >= MAX_REFS) break;
+  }
 
-  if (!placements.length) return null;
+  if (!chosen.length) return null;
 
-  // Group by insertion position so multiple refs at the same spot stay ordered [1][2]
+  // Step 3: insert markers at the end of each chosen paragraph.
   const groups = {};
-  for (const p of placements) {
-    if (!groups[p.pos]) groups[p.pos] = new Set();
-    groups[p.pos].add(p.ref);
+  for (const c of chosen) {
+    const pClean = c.para.trim();
+    const idxInPara = para.indexOf(pClean);
+    if (idxInPara === -1) continue;
+    const insertPos = idxInPara + pClean.length;
+    if (!groups[insertPos]) groups[insertPos] = new Set();
+    groups[insertPos].add(c.ref);
   }
   const positions = Object.keys(groups).map(Number).sort((a, b) => b - a);
 
@@ -2835,20 +2889,49 @@ function buildFallbackCitations(articles, para) {
     annotated = annotated.slice(0, pos) + markers + annotated.slice(pos);
   }
 
-  const insertions = [];
-  const seenRefs = new Set();
-  for (const p of placements) {
-    if (seenRefs.has(p.ref)) continue;
-    seenRefs.add(p.ref);
-    const a = selected[p.ref - 1];
-    const after = p.para.split(/\s+/).slice(0, 10).join(' ');
-    insertions.push({
-      ref: p.ref,
-      after: after,
-      reason: `该文献《${a.title.slice(0, 70)}${a.title.length > 70 ? '…' : ''}》与段落中“${after.replace(/[.!?]+$/, '')}”主题相关，可作为相关参考。`,
+  // Step 4: build reasons that mimic the AI style: mention the article's
+  // concrete finding and tie it to the paragraph's key terms.
+  const insertions = chosen.map(c => {
+    const a = c.article;
+    const cleanPara = c.para.replace(/\[\d+([–,]\d+)*\]/g, '').trim();
+    const paraLower = cleanPara.toLowerCase();
+
+    // Find key terms/gene names that appear in both the paragraph and the article.
+    // Parenthetical uppercase tokens like (FT), (PEBP), (SAM), (FAC), (AP1) are
+    // high-confidence gene/protein names; standalone uppercase tokens are accepted
+    // only if they are not common biological/bibliographic words.
+    const GENERIC_UPPER = new Set(['LOCUS','GENE','GENES','PROTEIN','PROTEINS','FAMILY','FAMILIES','MERISTEM','MERISTEMS','PLANT','PLANTS','LEAVES','ROOT','ROOTS','TREE','TREES','SPECIES','SAM','SHOOT','FLOWER','FLOWERS','FLORIGEN','RESEARCH','STUDY','STUDIES','RNA','DNA','PCR','CDNA','MRNA']);
+    const parenGenes = (cleanPara.match(/\([A-Z][A-Z0-9]{1,5}\)/g) || []).map(m => m.replace(/[()]/g, ''));
+    const otherGenes = (cleanPara.match(/\b[A-Z][A-Z0-9]{1,5}\b/g) || []).filter(t => !GENERIC_UPPER.has(t));
+    const geneMatches = [...new Set([...parenGenes, ...otherGenes])];
+    const articleText = ((a.title || '') + ' ' + (a.abstract || '')).toLowerCase();
+    const matchedTerms = [...new Set(geneMatches.filter(t => articleText.includes(t.toLowerCase())))].slice(0, 3);
+
+    // Fallback term string: pick content words from the paragraph query that also
+    // appear in the article (e.g. florigen, vernalization, dormancy), so the reason
+    // names the actual overlapping concept rather than the article's title.
+    const contentMatches = buildParagraphQuery(c.para)
+      .split(/\s+/)
+      .filter(t => t.length >= 4 && articleText.includes(t))
+      .slice(0, 3);
+    const termStr = matchedTerms.join(' / ') || contentMatches.join(' / ') || 'flowering regulation';
+
+    // Pull a concrete finding from the abstract (first meaningful sentence).
+    const absPlain = (a.abstract || '').replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+    const firstSentence = absPlain.split(/\.(?=\s)/).filter(s => s.trim().length > 30)[0] || (a.title || '');
+    const finding = firstSentence.trim().slice(0, 130) + (firstSentence.length > 130 ? '…' : '');
+
+    const reason = matchedTerms.length
+      ? `该研究指出：${finding}。这与段落中 ${termStr} 的论述直接对应，可作为机制支撑。`
+      : `该研究指出：${finding}。与段落讨论的 ${termStr} 主题存在交集，可作为背景参考。`;
+
+    return {
+      ref: c.ref,
+      after: cleanPara.split(/\s+/).slice(0, 10).join(' '),
+      reason,
       titleZh: ''
-    });
-  }
+    };
+  });
 
   return { annotated, insertions };
 }
