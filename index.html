@@ -2826,7 +2826,9 @@ function buildFallbackCitations(articles, para) {
   // Step1/Step2 query terms, so we avoid re-ranking them with a loose
   // paragraph-as-query that rewards generic-word matches (e.g. a UGT paper
   // that simply contains "flowering" many times).
-  const candidates = articles.slice(0, Math.min(articles.length, MAX_REFS));
+  // We inspect the top 10 (not just MAX_REFS) so that an unrelated article
+  // ranked 2nd does not automatically squeeze out truly relevant ones.
+  const candidates = articles.slice(0, Math.min(articles.length, 10));
   if (!candidates.length) return null;
 
   // Step 2: for each candidate, find the most semantically relevant paragraph.
@@ -3011,6 +3013,13 @@ function renderCiteResults(citeResult, articles, rawPara) {
   // All data lookups (article resolution, reasonMap, titleZhMap) still use the original
   // ref, so the underlying logic is untouched.
   const displayMap = new Map(sortedRefs.map((r, i) => [r, i + 1]));
+
+  // ── Step F: No valid MAP recommendation at all → show explicit empty-state. ──
+  //    Do not render an empty "annotated paragraph" card when nothing was
+  //    actually recommended; otherwise the user sees a blank response.
+  if (validRefs.size === 0) {
+    return renderNoResult('the given paragraph');
+  }
 
   // ── Block 1: Annotated paragraph with red highlights ──
   if (normalizedAnnotated) {
