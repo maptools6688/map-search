@@ -2644,12 +2644,30 @@ Return ONLY valid JSON (no markdown), exactly this format:
       citeResult = null;
     }
 
-    // Safety net: if DeepSeek returns NO usable citations — empty insertions OR a
-    // completely unparseable response (citeResult === null) — but the recall layer
-    // still produced ranked candidate articles, programmatically insert the top 1-3
+    // Safety net: if DeepSeek returns NO usable citations — empty insertions, a
+    // completely unparseable response (citeResult === null), or insertions whose
+    // ref numbers are ALL out of range (annotated markers would be stripped and
+    // the renderer would fall into the empty state) — but the recall layer still
+    // produced ranked candidate articles, programmatically insert the top 1-3
     // articles at the most relevant paragraphs. This guarantees the user sees
     // results whenever relevant literature exists, regardless of model verbosity.
-    if ((!citeResult || !citeResult.insertions || !citeResult.insertions.length) && topArts.length > 0) {
+    const hasUsableCitation = (() => {
+      if (!citeResult) return false;
+      // A valid marker already in the annotated paragraph?
+      const ann = citeResult.annotated || '';
+      const markerHit = (ann.match(/\[(\d+)\]/g) || []).some(m => {
+        const n = parseInt(m.slice(1, -1), 10);
+        return Number.isInteger(n) && n >= 1 && n <= topArts.length;
+      });
+      if (markerHit) return true;
+      // A valid ref in the insertions metadata?
+      if (Array.isArray(citeResult.insertions)) {
+        return citeResult.insertions.some(ins =>
+          ins && Number.isInteger(ins.ref) && ins.ref >= 1 && ins.ref <= topArts.length);
+      }
+      return false;
+    })();
+    if (!hasUsableCitation && topArts.length > 0) {
       const fb = buildFallbackCitations(topArts, para);
       if (fb) {
         // Translate the fallback articles' English titles via a lightweight
@@ -2829,19 +2847,17 @@ function normalizeCiteMarkers(text, insertions, originalPara) {
 }
 
 // ── Fallback citation builder ──
-// DeepSeek sometimes returns an empty 'insertions' array even when the candidate
-// pool contains clearly relevant articles (over-conservatism). As a safety net,
-// we use the same articleScore() function that powers the recall layer to pick
-// the best (paragraph, article) pairs. This keeps fallback recommendations
-// consistent with the ranked candidate pool and avoids matching on generic
-// words like "vegetative growth". Each paragraph gets at most one marker,
-// and unrelated articles are filtered out by a score threshold.
+// DeepSeek sometimes returns an empty 'insertions' array or unparseable JSON even
+// when the recall layer already produced relevant candidate articles. As a safety
+// net, we insert the top-ranked articles (already vetted by the recall/rank stage)
+// at the most semantically relevant paragraph. We only skip an article when NONE
+// of the paragraphs share any meaningful terms with it (score == 0), which means
+// the recall stage made a gross mistake — in that case the empty result is honest.
 function buildFallbackCitations(articles, para) {
   if (!articles || !articles.length || !para) return null;
   const paragraphs = para.split(/\n\s*\n/).filter(p => p.trim());
   if (!paragraphs.length) return null;
 
-  const MIN_SCORE = 10;          // paragraph-level threshold; the candidate pool itself is already ranked by relevance to the full input
   const MAX_REFS = 3;            // same cap as the original fallback
 
   // Step 1: use the top-ranked articles from the main pipeline as fallback
@@ -2883,7 +2899,8 @@ function buildFallbackCitations(articles, para) {
       const score = articleScore(a.title || '', a.abstract || '', query);
       if (score > best.score) best = { score, para: p, paraIdx: pi };
     });
-    if (best.score >= MIN_SCORE) {
+    // Trust the recall/rank stage: only reject when literally zero overlap.
+    if (best.score > 0) {
       usedParaIdx.add(best.paraIdx);
       // ref MUST be the article's 1-based index in the full articles array:
       // the renderer resolves refs via articles[ref-1], so a local counter
