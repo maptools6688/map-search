@@ -3005,19 +3005,34 @@ function renderCiteResults(citeResult, articles, rawPara) {
   const sortedRefs = Array.from(validRefs).sort((a, b) => a - b);
   const displayedArticles = sortedRefs.map(r => articles[r - 1]).filter(Boolean);
 
+  // Display-only renumbering: end-users see [1]..[N] in citation order, even when the
+  // underlying refs are sparse (e.g. only the 2nd article was selected → shows as [1]).
+  // The displayMap maps the original candidate-list ref to its sequential display index.
+  // All data lookups (article resolution, reasonMap, titleZhMap) still use the original
+  // ref, so the underlying logic is untouched.
+  const displayMap = new Map(sortedRefs.map((r, i) => [r, i + 1]));
+
   // ── Block 1: Annotated paragraph with red highlights ──
   if (normalizedAnnotated) {
-    // Highlight citation markers [1],[2],... in red as superscript
+    // Highlight citation markers in red as superscript. The marker text uses the
+    // sequential display index (e.g. [1], [2]) so end-users see a tidy sequence,
+    // while the underlying ref still points to the correct article via articles[ref-1].
     let annotated = escHtml(normalizedAnnotated);
     annotated = annotated.replace(/\[(\d+)\]/g, (m, n) => {
-      const idx = parseInt(n) - 1;
-      const art = articles[idx];
+      const ref = parseInt(n, 10);
+      const art = articles[ref - 1];
       const url = art ? 'https://www.maxapress.com/article/doi/' + art.doi : '#';
-      return `<sup><a class="cite-marker" href="${url}" target="_blank" title="${art ? escHtml(art.title) : ''}">[${n}]</a></sup>`;
+      const displayN = displayMap.get(ref) || ref;
+      return `<sup><a class="cite-marker" href="${url}" target="_blank" title="${art ? escHtml(art.title) : ''}">[${displayN}]</a></sup>`;
     });
 
-    // Copy plain text (normalized annotated without HTML)
-    const plainAnnotated = normalizedAnnotated;
+    // Copy plain text: also renumber markers to the display sequence so what the
+    // user copies into their manuscript matches the detail-card numbering exactly.
+    const plainAnnotated = normalizedAnnotated.replace(/\[(\d+)\]/g, (m, n) => {
+      const ref = parseInt(n, 10);
+      const displayN = displayMap.get(ref) || ref;
+      return `[${displayN}]`;
+    });
     const escAnnotated = plainAnnotated.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
     html += `<div class="card">
@@ -3054,6 +3069,7 @@ function renderCiteResults(citeResult, articles, rawPara) {
     sortedRefs.forEach((ref, i) => {
       const a = articles[ref - 1];
       if (!a) return;
+      const displayNum = i + 1;  // sequential [1]..[N] shown to the user
       const url = 'https://www.maxapress.com/article/doi/' + a.doi;
       const jUrl = 'https://www.maxapress.com/' + a.jId;
       const tl = TYPE_LABEL[a.type] || a.type || '研究论文';
@@ -3061,16 +3077,16 @@ function renderCiteResults(citeResult, articles, rawPara) {
       // APA format
       const apaText = `${a.title}. ${a.jName}. https://doi.org/${a.doi}`;
       const escApa  = apaText.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-      // Vancouver format
-      const vanText = `[${ref}] ${a.title}. ${a.jName} ${a.year}${a.volume?';'+a.volume:''}${a.issue?'('+a.issue+')':''}. doi:${a.doi}`;
+      // Vancouver format (uses the display sequence to match the paragraph)
+      const vanText = `[${displayNum}] ${a.title}. ${a.jName} ${a.year}${a.volume?';'+a.volume:''}${a.issue?'('+a.issue+')':''}. doi:${a.doi}`;
       const escVan  = vanText.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-      // Reason (Chinese)
+      // Reason (Chinese) — looked up by the ORIGINAL ref, since reasonMap is keyed by it
       const reason = reasonMap[ref] || '';
-      // Chinese title: prefer official titleCn, fallback to AI-translated titleZh
+      // Chinese title: prefer official titleCn, fallback to AI-translated titleZh (both keyed by original ref)
       const titleCn = a.titleCn || titleZhMap[ref] || '';
 
       html += `<div class="article-item cite-article-item">
-        <div class="cite-ref-num">[${ref}]</div>
+        <div class="cite-ref-num">[${displayNum}]</div>
         <div class="cite-art-body">
           <div class="art-title"><a href="${url}" target="_blank">${escHtml(a.title)}</a></div>
           ${titleCn ? `<div class="art-title-cn">${escHtml(titleCn)}</div>` : ''}
