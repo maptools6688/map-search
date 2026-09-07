@@ -2577,6 +2577,12 @@ Return ONLY a JSON array of indices, ordered by relevance (most relevant first):
       topArts = candidateArticles.slice(0, 5);
     }
 
+    // Final safety net: if Step2 ranked out-of-range indices or returned nothing,
+    // still give Step3 something to work with.
+    if (!topArts.length && candidateArticles.length) {
+      topArts = candidateArticles.slice(0, 5);
+    }
+
     // Step 3: Ask AI to insert citations directly into the paragraph
     // Include each article's abstract so the AI can ground its citation reasons
     // in actual article content (rule: Reason-grounding) instead of guessing
@@ -2615,7 +2621,7 @@ CRITICAL RULES for citation placement:
 8. For each inserted article [n], also provide a concise Chinese translation of its English title in the field 'titleZh'. Make it natural and readable for Chinese researchers (not word-for-word literal).
 9. **Key-actor relevance rule (cross-phenotype, highest priority)**: If a candidate article's abstract mentions classic genes, regulators, or pathway components that clearly belong to the paragraph's core topic — for example FLC, CO, SOC1, LFY or their homologs when the paragraph discusses flowering regulation — treat the article as RELEVANT and cite it appropriately, even when the abstract's primary phenotype (dormancy, fruit development, vegetative growth, stress tolerance, etc.) differs from the paragraph's focus. Judge relevance by KEY ACTORS rather than by the abstract's surface topic. Apply this rule across all biological domains: stress, development, defense, epigenetics, senescence, metabolism, signaling, etc. Do not reject an article solely because its central phenotype doesn't match, when its key molecular actors sit inside the paragraph's core topic.
 10. **Specificity rule (named-entity matching, strict)**: When the paragraph mentions specific genes (e.g. FT, Hd3a, SFT, GmFT, FLC, CO, SOC1, LFY), specific proteins (florigen, FD, AP1), or specific mechanisms (FAC / florigen activation complex, vernalization pathway), the cited article MUST actually discuss those exact genes/proteins OR their orthologs/homologs in a biologically equivalent context. **However**, for paragraphs that describe canonical regulatory networks or well-established mechanisms (such as FAC, FT-FD-AP1 axis, photoperiodic flowering, AP2/TOE1-mediated flowering time control), an article is also acceptable if it discusses the same broader pathway or regulatory network and names at least one key actor from that pathway (e.g. FT, FLC, AP2/TOE1, FD, AP1) or an ortholog/homolog. Citing an article merely because it covers a broad adjacent category — e.g. plant development, forest seedling growth, root traits, biotic stress — without naming the same gene/actor-level entities, is FORBIDDEN when the paragraph specifies those entities. If no candidate article meets this specificity, cite fewer — do not pad with off-topic matches.
-11. **No-padding rule**: Returning 0–2 precisely-matched citations is ALWAYS preferable to 5 forced matches. It is expected and acceptable that many candidate articles are unused. Do not invent relevance to fill out a number. If only 1 sentence in the paragraph has a matching candidate, cite just that one.
+11. **No-padding rule, with a floor**: Returning 0–2 precisely-matched citations is ALWAYS preferable to 5 forced matches. It is expected and acceptable that many candidate articles are unused. Do not invent relevance to fill out a number. **However**, if the provided candidate list contains articles that clearly discuss the paragraph's specific genes, proteins, or pathways (e.g. FT, AP2/TOE1, FAC, FLC), you MUST cite at least the most relevant one. Returning 0 citations is acceptable ONLY when none of the candidates actually match the paragraph's key actors.
 12. **Reason-grounding rule (no fabricated justifications)**: The Chinese 'reason' for each cited article MUST be grounded in CONCRETE content from that article's title / abstract / conclusions — e.g., "该研究发现 HD3a ..." / "文中报道 FLC 同源基因..." / "文章以 X 物种比较 FT 与 Y 的功能". Generic filler phrases like "该文献涉及植物发育调控的保守机制" or "与本段背景相关" WITHOUT referencing the article's specific named genes / species / findings / experiments are FORBIDDEN. If you cannot ground the reason in specific article content, do not cite that article.
 13. **Marker-arithmetic consistency rule (MUST)**: The [n] numbers appearing in the 'annotated' paragraph MUST be a strict subset of the 'ref' values in the 'insertions' array. Cross-validate before returning — count your 'insertions' entries and their ref numbers; the [n] in 'annotated' may only use those exact numbers. If your insertions has ONE entry with ref=1, then 'annotated' may only contain [1] — never [4] or any other number. Out-of-range or inconsistent markers will cause the renderer to display mismatched detail cards.
 14. **Full-text preservation rule (MUST)**: Return the COMPLETE input paragraph in 'annotated' — every sentence AND every paragraph MUST appear verbatim (modulo only the inserted [n] markers). The input may contain MULTIPLE paragraphs separated by blank lines — preserve ALL of them with the original blank-line structure. NEVER delete, summarize, paraphrase, condense, skip, or omit any sentence, clause, or paragraph from the input. Sentences that describe well-established mechanisms, conserved pathways, canonical models (e.g. FAC, FT-FD-AP1 axis, vernalization pathway, hormone signaling cascades), review-style conclusions, or background facts are NOT "the author's own work" — they are claims that should ALSO be retained and considered for citation. The "author's own work" exception in rule 3 refers ONLY to sentences that clearly describe this paper's own experiments / methods / data (e.g. "We performed...", "Here we show...", "Our results indicate..."). If a paragraph's sentences have no good citation matches, return them WITHOUT markers, but DO NOT remove them. The user's text is sacred.
@@ -2636,6 +2642,17 @@ Return ONLY valid JSON (no markdown), exactly this format:
       citeResult = match ? JSON.parse(match[0]) : null;
     } catch {
       citeResult = null;
+    }
+
+    // Safety net: if DeepSeek returns empty insertions (over-conservatism) but we
+    // still have candidate articles, programmatically insert the top 1-3 articles
+    // at the most relevant paragraphs. This guarantees the user sees results when
+    // the recall layer has found relevant literature.
+    if (citeResult && (!citeResult.insertions || !citeResult.insertions.length) && topArts.length > 0) {
+      const fb = buildFallbackCitations(topArts, para);
+      if (fb) {
+        citeResult = { ...citeResult, annotated: fb.annotated, insertions: fb.insertions, _fallback: true };
+      }
     }
 
     // Render
@@ -2767,6 +2784,75 @@ function normalizeCiteMarkers(text, insertions) {
   return t;
 }
 
+// ── Fallback citation builder ──
+// DeepSeek sometimes returns an empty 'insertions' array even when the candidate
+// pool contains clearly relevant articles (over-conservatism). As a safety net,
+// we programmatically place markers for the top 1-3 articles at the paragraphs
+// with the strongest token overlap. This guarantees the user sees actionable
+// recommendations while preserving the original paragraph text.
+function buildFallbackCitations(articles, para) {
+  if (!articles || !articles.length || !para) return null;
+  const paragraphs = para.split(/\n\s*\n/).filter(p => p.trim());
+  if (!paragraphs.length) return null;
+
+  const selected = articles.slice(0, Math.min(articles.length, 3));
+  const placements = [];
+
+  selected.forEach((a, idx) => {
+    const ref = idx + 1;
+    const text = ((a.title || '') + ' ' + (a.abstract || '')).toLowerCase();
+    const tokens = new Set(text.split(/[^a-z0-9]+/).filter(t => t.length >= 2));
+    let best = { score: -1, para: '', paraIdx: -1 };
+    paragraphs.forEach((p, pi) => {
+      const pt = p.toLowerCase().split(/[^a-z0-9]+/).filter(t => t.length >= 2);
+      const score = pt.filter(t => tokens.has(t)).length;
+      if (score > best.score) best = { score, para: p, paraIdx: pi };
+    });
+    if (best.para) {
+      const p = best.para.trim();
+      const stem = p.replace(/[.!?]+$/, '').trim();
+      const idxInPara = para.indexOf(p);
+      if (idxInPara !== -1) {
+        const insertPos = idxInPara + (stem.length > 0 ? stem.length : p.length);
+        placements.push({ pos: insertPos, ref, para: p });
+      }
+    }
+  });
+
+  if (!placements.length) return null;
+
+  // Group by insertion position so multiple refs at the same spot stay ordered [1][2]
+  const groups = {};
+  for (const p of placements) {
+    if (!groups[p.pos]) groups[p.pos] = new Set();
+    groups[p.pos].add(p.ref);
+  }
+  const positions = Object.keys(groups).map(Number).sort((a, b) => b - a);
+
+  let annotated = para;
+  for (const pos of positions) {
+    const markers = Array.from(groups[pos]).sort((a, b) => a - b).map(r => `[${r}]`).join('');
+    annotated = annotated.slice(0, pos) + markers + annotated.slice(pos);
+  }
+
+  const insertions = [];
+  const seenRefs = new Set();
+  for (const p of placements) {
+    if (seenRefs.has(p.ref)) continue;
+    seenRefs.add(p.ref);
+    const a = selected[p.ref - 1];
+    const after = p.para.split(/\s+/).slice(0, 10).join(' ');
+    insertions.push({
+      ref: p.ref,
+      after: after,
+      reason: `该文献《${a.title.slice(0, 70)}${a.title.length > 70 ? '…' : ''}》与段落中“${after.replace(/[.!?]+$/, '')}”主题相关，可作为相关参考。`,
+      titleZh: ''
+    });
+  }
+
+  return { annotated, insertions };
+}
+
 function renderCiteResults(citeResult, articles, rawPara) {
   const [y0, y1] = getYearRange();
   let html = '';
@@ -2871,12 +2957,16 @@ function renderCiteResults(citeResult, articles, rawPara) {
         if (ins.ref && ins.titleZh) titleZhMap[ins.ref] = ins.titleZh;
       });
     }
+    const fallbackNotice = (citeResult && citeResult._fallback)
+      ? '<div style=\"margin:0 0 12px 0;padding:8px 12px;background:#fff7e6;border-left:4px solid #faad14;border-radius:4px;color:#874d00;font-size:13px;\">🛟 智能模型本次未主动返回推荐，已按相关性自动兜底插入以下文献。</div>'
+      : '';
 
     html += `<div class="card">
       <div class="articles-header">
         <div class="articles-title">参考文献详情</div>
         <div class="articles-count">${displayedArticles.length} 篇 · ${y0}–${y1} 年</div>
-      </div>`;
+      </div>
+      ${fallbackNotice}`;
 
     sortedRefs.forEach((ref, i) => {
       const a = articles[ref - 1];
