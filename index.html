@@ -2609,6 +2609,8 @@ CRITICAL RULES for citation placement:
 10. **Specificity rule (named-entity matching, strict)**: When the paragraph mentions specific genes (e.g. FT, Hd3a, SFT, GmFT, FLC, CO, SOC1, LFY), specific proteins (florigen, FD, AP1), or specific mechanisms (FAC / florigen activation complex, vernalization pathway), the cited article MUST actually discuss those exact genes/proteins OR their orthologs/homologs in a biologically equivalent context. Citing an article merely because it covers a broad adjacent category — e.g. plant development, forest seedling growth, root traits, biotic stress — without naming the same gene/actor-level entities, is FORBIDDEN when the paragraph specifies those entities. If no candidate article meets this strict specificity, cite fewer — do not pad with off-topic matches.
 11. **No-padding rule**: Returning 0–2 precisely-matched citations is ALWAYS preferable to 5 forced matches. It is expected and acceptable that many candidate articles are unused. Do not invent relevance to fill out a number. If only 1 sentence in the paragraph has a matching candidate, cite just that one.
 12. **Reason-grounding rule (no fabricated justifications)**: The Chinese 'reason' for each cited article MUST be grounded in CONCRETE content from that article's title / abstract / conclusions — e.g., "该研究发现 HD3a ..." / "文中报道 FLC 同源基因..." / "文章以 X 物种比较 FT 与 Y 的功能". Generic filler phrases like "该文献涉及植物发育调控的保守机制" or "与本段背景相关" WITHOUT referencing the article's specific named genes / species / findings / experiments are FORBIDDEN. If you cannot ground the reason in specific article content, do not cite that article.
+13. **Marker-arithmetic consistency rule (MUST)**: The [n] numbers appearing in the 'annotated' paragraph MUST be a strict subset of the 'ref' values in the 'insertions' array. Cross-validate before returning — count your 'insertions' entries and their ref numbers; the [n] in 'annotated' may only use those exact numbers. If your insertions has ONE entry with ref=1, then 'annotated' may only contain [1] — never [4] or any other number. Out-of-range or inconsistent markers will cause the renderer to display mismatched detail cards.
+14. **Full-text preservation rule (MUST)**: Return the COMPLETE input paragraph in 'annotated' — every sentence AND every paragraph MUST appear verbatim (modulo only the inserted [n] markers). The input may contain MULTIPLE paragraphs separated by blank lines — preserve ALL of them with the original blank-line structure. NEVER delete, summarize, paraphrase, condense, skip, or omit any sentence, clause, or paragraph from the input. Sentences that describe well-established mechanisms, conserved pathways, canonical models (e.g. FAC, FT-FD-AP1 axis, vernalization pathway, hormone signaling cascades), review-style conclusions, or background facts are NOT "the author's own work" — they are claims that should ALSO be retained and considered for citation. The "author's own work" exception in rule 3 refers ONLY to sentences that clearly describe this paper's own experiments / methods / data (e.g. "We performed...", "Here we show...", "Our results indicate..."). If a paragraph's sentences have no good citation matches, return them WITHOUT markers, but DO NOT remove them. The user's text is sacred.
 
 Return ONLY valid JSON (no markdown), exactly this format:
 {
@@ -2629,7 +2631,7 @@ Return ONLY valid JSON (no markdown), exactly this format:
     }
 
     // Render
-    resultsDiv.innerHTML = renderCiteResults(citeResult, topArts);
+    resultsDiv.innerHTML = renderCiteResults(citeResult, topArts, para);
 
   } catch(err) {
     resultsDiv.innerHTML = '<div class="card"><div class="status-msg status-error">出错：' + err.message + '</div></div>';
@@ -2757,36 +2759,79 @@ function normalizeCiteMarkers(text, insertions) {
   return t;
 }
 
-function renderCiteResults(citeResult, articles) {
+function renderCiteResults(citeResult, articles, rawPara) {
   const [y0, y1] = getYearRange();
   let html = '';
 
-  // Determine which articles were actually cited by scanning the annotated paragraph first.
-  // If model honors no-padding rule and inserts no markers, details must reflect that.
-  const citedRefs = new Set();
-  if (citeResult && citeResult.annotated) {
-    const normalizedAnnotated = normalizeCiteMarkers(citeResult.annotated, citeResult.insertions || []);
-    const markerMatches = normalizedAnnotated.match(/\[(\d+)\]/g) || [];
+  // ── Step A0: Full-paragraph sanity check.
+  //    DeepSeek occasionally truncates / drops the second paragraph of a multi-paragraph input,
+  //    usually by misreading "well-established mechanism sentences" as "author's own work" under
+  //    rule 3 and omitting them. If the model's annotated output is significantly shorter than
+  //    the user's raw input (stripping [n] markers and whitespace), we fall back to the raw input
+  //    so the user always sees BOTH paragraphs even if no markers land in the second one.
+  const stripMarkersAndWS = s => (s || '').replace(/\[\d+\]/g, '').replace(/\s+/g, '').trim();
+  let rawAnnotated = (citeResult && citeResult.annotated) || '';
+  if (rawPara && rawAnnotated) {
+    const rawLen = stripMarkersAndWS(rawPara).length;
+    const annLen = stripMarkersAndWS(rawAnnotated).length;
+    // Also count paragraphs (\n\n) — if the user gave 2 paragraphs but model returns 1, fall back.
+    const rawParas = (rawPara.match(/\n\s*\n/g) || []).length + 1;
+    const annParas  = (rawAnnotated.match(/\n\s*\n/g) || []).length + 1;
+    const truncatedByLen    = rawLen > 200 && annLen < rawLen * 0.7;
+    const truncatedByParas  = rawParas >= 2 && annParas < rawParas;
+    if (truncatedByLen || truncatedByParas) {
+      console.warn('[cite] Annotated paragraph appears truncated. raw=' + rawLen + ' ann=' + annLen + ' rawParas=' + rawParas + ' annParas=' + annParas + '. Falling back to raw input.');
+      rawAnnotated = rawPara;
+    }
+  }
+  // ── Step A: Scan the annotated paragraph for [n] markers ──
+  let citedRefs = new Set();
+  if (rawAnnotated) {
+    const tmpNorm = normalizeCiteMarkers(rawAnnotated, citeResult.insertions || []);
+    const markerMatches = tmpNorm.match(/\[(\d+)\]/g) || [];
     markerMatches.forEach(m => citedRefs.add(parseInt(m.slice(1, -1), 10)));
   }
-  // Fallback: only if annotated is empty/missing do we trust insertions metadata.
-  if (citedRefs.size === 0 && citeResult && citeResult.insertions) {
+
+  // ── Step B: Validate refs against the articles range.
+  //    DeepSeek occasionally emits an [n] whose number doesn't match any insertions
+  //    entry (e.g. writes [4] in annotated while insertions has ref=1 only).
+  //    Anything out of range would otherwise produce mismatched paragraph vs detail numbering.
+  const validRefs = new Set();
+  citedRefs.forEach(ref => {
+    if (Number.isInteger(ref) && ref >= 1 && ref <= articles.length && articles[ref - 1]) {
+      validRefs.add(ref);
+    }
+  });
+
+  // ── Step C: Fallback to insertions metadata ONLY when annotated yielded no refs at all ──
+  if (validRefs.size === 0 && citeResult && citeResult.insertions) {
     citeResult.insertions.forEach(ins => {
-      if (ins.ref) citedRefs.add(ins.ref);
+      if (Number.isInteger(ins.ref) && ins.ref >= 1 && ins.ref <= articles.length && articles[ins.ref - 1]) {
+        validRefs.add(ins.ref);
+      }
     });
   }
-  // If no refs at all, keep all articles as fallback (legacy safety); otherwise show only cited ones
-  const displayedArticles = citedRefs.size > 0
-    ? articles.filter((a, i) => citedRefs.has(i + 1))
-    : articles;
+
+  // ── Step D: Re-normalize annotated using the validated refs and strip any [n] still outside validRefs.
+  //    This guarantees the paragraph's [n] and the detail-card numbering are exactly consistent.
+  let normalizedAnnotated = rawAnnotated;
+  if (rawAnnotated) {
+    normalizedAnnotated = normalizeCiteMarkers(rawAnnotated, [...validRefs].map(r => ({ref: r})));
+    normalizedAnnotated = normalizedAnnotated.replace(/\[(\d+)\]/g, (m, n) => {
+      const ref = parseInt(n, 10);
+      return validRefs.has(ref) ? m : '';
+    });
+  }
+
+  // ── Step E: Build displayed articles in valid-ref order. The ref number shown in the card
+  //    is the ref number ITSELF (preserved from the paragraph), not a re-indexed i+1.
+  const sortedRefs = Array.from(validRefs).sort((a, b) => a - b);
+  const displayedArticles = sortedRefs.map(r => articles[r - 1]).filter(Boolean);
 
   // ── Block 1: Annotated paragraph with red highlights ──
-  if (citeResult && citeResult.annotated) {
-    // Normalize first: ensure inserted refs are bracketed even if model output plain numbers.
-    const normalizedAnnotated = normalizeCiteMarkers(citeResult.annotated, citeResult.insertions);
-    // Highlight [n] markers in red bold, and the sentence they appear in with light red bg
+  if (normalizedAnnotated) {
+    // Highlight citation markers [1],[2],... in red as superscript
     let annotated = escHtml(normalizedAnnotated);
-    // Highlight citation markers [1],[2],... in red
     annotated = annotated.replace(/\[(\d+)\]/g, (m, n) => {
       const idx = parseInt(n) - 1;
       const art = articles[idx];
@@ -2825,8 +2870,9 @@ function renderCiteResults(citeResult, articles) {
         <div class="articles-count">${displayedArticles.length} 篇 · ${y0}–${y1} 年</div>
       </div>`;
 
-    displayedArticles.forEach((a, i) => {
-      const refNum = i + 1;
+    sortedRefs.forEach((ref, i) => {
+      const a = articles[ref - 1];
+      if (!a) return;
       const url = 'https://www.maxapress.com/article/doi/' + a.doi;
       const jUrl = 'https://www.maxapress.com/' + a.jId;
       const tl = TYPE_LABEL[a.type] || a.type || '研究论文';
@@ -2835,15 +2881,15 @@ function renderCiteResults(citeResult, articles) {
       const apaText = `${a.title}. ${a.jName}. https://doi.org/${a.doi}`;
       const escApa  = apaText.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
       // Vancouver format
-      const vanText = `[${refNum}] ${a.title}. ${a.jName} ${a.year}${a.volume?';'+a.volume:''}${a.issue?'('+a.issue+')':''}. doi:${a.doi}`;
+      const vanText = `[${ref}] ${a.title}. ${a.jName} ${a.year}${a.volume?';'+a.volume:''}${a.issue?'('+a.issue+')':''}. doi:${a.doi}`;
       const escVan  = vanText.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
       // Reason (Chinese)
-      const reason = reasonMap[refNum] || '';
+      const reason = reasonMap[ref] || '';
       // Chinese title: prefer official titleCn, fallback to AI-translated titleZh
-      const titleCn = a.titleCn || titleZhMap[refNum] || '';
+      const titleCn = a.titleCn || titleZhMap[ref] || '';
 
       html += `<div class="article-item cite-article-item">
-        <div class="cite-ref-num">[${refNum}]</div>
+        <div class="cite-ref-num">[${ref}]</div>
         <div class="cite-art-body">
           <div class="art-title"><a href="${url}" target="_blank">${escHtml(a.title)}</a></div>
           ${titleCn ? `<div class="art-title-cn">${escHtml(titleCn)}</div>` : ''}
