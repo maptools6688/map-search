@@ -2407,7 +2407,9 @@ Given the paragraph below, do THREE things in order:
 1. FIRST, determine the PRIMARY research field / subject of the paragraph (e.g., forestry & tree salt tolerance, plant-microbe interactions, food materials, cancer care). State it briefly in "field".
 2. Select 5-8 MAP journals that are MOST topically relevant. Read each journal's 范围描述 AND 关键词 together — a journal may cover the topic even if the description alone doesn't spell it out. Consider: what is the core research question? which journals actually publish this type of research?
    CROSS-DISCIPLINARY RULE: Many paragraphs span disciplines (e.g., microbial treatment of tree salt tolerance = forestry + microbiology). Identify the PRIMARY subject (what is being studied — e.g., trees / forest / woody plants) and ALWAYS include journals from that primary domain. Do NOT let secondary methods (microbial inoculation, molecular tools) overshadow the primary subject.
-3. Extract 2-3 concise English search queries (2-4 words each) to find articles within the selected journals.
+3. Extract 3-6 concise English search queries (2-4 words each) to find articles within the selected journals.
+   **CRITICAL**: Your queries MUST include the specific genes, proteins, protein complexes, or regulators explicitly named in the paragraph (e.g. FT, Hd3a, SFT, GmFT, PEBP, FAC, AP1, AP2, TOE1, FD, FLC). Also include one broader query covering the overall topic (e.g. "flowering regulation", "floral transition"). These named entities are the strongest anchors for finding relevant articles — generic topic queries alone will miss them.
+   **SYNONYM EXPANSION (crucial)**: For each named gene or protein, ALSO add at least one query using its well-known synonyms, aliases, or family/subfamily names — because article titles and abstracts often use a DIFFERENT name for the same entity, and literal string matching will miss them. Examples: FT → "florigen" or "PEBP family"; TOE1/AP2 → "AP2 transcription factor" or "miR172 target"; SOC1 → "MADS-box flowering"; FT-FD complex → "florigen activation complex". Include the gene symbol form AND its descriptive/protein-name form. Do not exceed 6 queries total.
 
 Paragraph:
 """
@@ -2417,7 +2419,7 @@ ${para}
 Return ONLY valid JSON (no markdown, no extra text):
 {
   "field": "brief primary research field",
-  "queries": ["query1", "query2", "query3"],
+  "queries": ["query1", "query2", "query3", "query4", "query5", "query6"],
   "journals": ["id1", "id2", "id3", "id4", "id5"]
 }`;
 
@@ -2485,15 +2487,15 @@ Return ONLY valid JSON (no markdown, no extra text):
         return scored;
       }));
       for (const list of perJournal) {
-        for (const a of list.slice(0, 15)) {
+        for (const a of list.slice(0, 25)) {
           if (a.score > 0) candidateArticles.push(a);
         }
       }
     }
 
-    // Cap at 90 to keep AI prompt focused while covering enough candidates
-    if (candidateArticles.length > 90) {
-      candidateArticles = candidateArticles.slice(0, 90);
+    // Cap at 120 to keep AI prompt focused while covering enough candidates
+    if (candidateArticles.length > 120) {
+      candidateArticles = candidateArticles.slice(0, 120);
     }
 
     // Fallback: if too few articles from AI-selected journals (<5), do keyword-based supplement
@@ -2564,8 +2566,8 @@ Return ONLY a JSON array of indices, ordered by relevance (most relevant first):
       const match = rankResp.match(/\[[\s\S]*?\]/);
       const rankedIndices = match ? JSON.parse(match[0]) : [];
       if (rankedIndices.length > 0) {
-        // Use all genuinely relevant articles AI returned, cap at 15
-        topArts = rankedIndices.map(i => candidateArticles[i]).filter(Boolean).slice(0, 15);
+        // Use all genuinely relevant articles AI returned, cap at 25
+        topArts = rankedIndices.map(i => candidateArticles[i]).filter(Boolean).slice(0, 25);
       } else {
         // AI returned empty — fall back to articleScore top 5
         topArts = candidateArticles.slice(0, 5);
@@ -2576,9 +2578,14 @@ Return ONLY a JSON array of indices, ordered by relevance (most relevant first):
     }
 
     // Step 3: Ask AI to insert citations directly into the paragraph
-    const artList = topArts.map((a,i) =>
-      `[${i+1}] ${a.title}. ${a.jName} (${a.year}). DOI: ${a.doi}`
-    ).join('\n');
+    // Include each article's abstract so the AI can ground its citation reasons
+    // in actual article content (rule: Reason-grounding) instead of guessing
+    // from the title alone.
+    const artList = topArts.map((a,i) => {
+      const abs = (a.abstract || '').replace(/\s+/g, ' ').trim();
+      return `[${i+1}] ${a.title}. ${a.jName} (${a.year}). DOI: ${a.doi}` +
+        (abs ? `\n    Abstract: ${abs.slice(0, 400)}` : '');
+    }).join('\n');
 
     const citationPrompt = `You are an academic writing assistant. Your task is to INSERT citation markers into the researcher's existing paragraph — do NOT rewrite or rephrase the paragraph content.
 
@@ -2587,7 +2594,7 @@ The researcher's paragraph:
 ${para}
 """
 
-Relevant MAP journal articles that can be cited:
+Relevant MAP journal articles that can be cited (each entry includes its abstract — USE the abstract content to decide citation placement and to write grounded reasons):
 ${artList}
 
 CRITICAL RULES for citation placement:
@@ -2602,11 +2609,12 @@ CRITICAL RULES for citation placement:
 5. Insert "[n]" markers at the END of those sentences (before the period), using the article numbers above.
    **CRITICAL FORMAT**: markers MUST be wrapped in square brackets like "[1]", "[2]", "[3]". Do NOT output plain numbers like "1", "2", or "3,4". If two articles are cited at the same spot, output them as separate bracketed markers: "[3][4]".
    **Author's existing citation numbers — DO NOT TOUCH**: If the input paragraph already contains the researcher's own citation numbers WITHOUT square brackets (e.g. "1", "2", "3,4", "5") — these are the AUTHOR'S own references from their manuscript, NOT yours to manage. Leave them EXACTLY as they appear in the original text: do NOT delete them, do NOT wrap them in [ ], do NOT renumber them, do NOT re-position them, do NOT "fix" them by adding brackets. Your new [n] markers are ADDITIONAL citations only and must always use the [n] format. The author's plain-number citations and your [n] markers will coexist in the same paragraph; that is expected and correct.
+   **IMPORTANT**: The presence of the author's own citation numbers does NOT exempt you from inserting MAP markers. The author's numbers are their own previously-collected references; your [n] markers are additional MAP journal recommendations. If a relevant MAP article exists, insert its [n] marker regardless of whether the sentence already has an author citation.
 6. Return the COMPLETE paragraph with citations inserted. Do not change any other words.
 7. Also return: for each article [n] that you actually inserted in the paragraph, write a brief reason IN CHINESE (1-2 sentences) explaining WHY this article supports the paragraph content. Skip articles that you did not cite.
 8. For each inserted article [n], also provide a concise Chinese translation of its English title in the field 'titleZh'. Make it natural and readable for Chinese researchers (not word-for-word literal).
 9. **Key-actor relevance rule (cross-phenotype, highest priority)**: If a candidate article's abstract mentions classic genes, regulators, or pathway components that clearly belong to the paragraph's core topic — for example FLC, CO, SOC1, LFY or their homologs when the paragraph discusses flowering regulation — treat the article as RELEVANT and cite it appropriately, even when the abstract's primary phenotype (dormancy, fruit development, vegetative growth, stress tolerance, etc.) differs from the paragraph's focus. Judge relevance by KEY ACTORS rather than by the abstract's surface topic. Apply this rule across all biological domains: stress, development, defense, epigenetics, senescence, metabolism, signaling, etc. Do not reject an article solely because its central phenotype doesn't match, when its key molecular actors sit inside the paragraph's core topic.
-10. **Specificity rule (named-entity matching, strict)**: When the paragraph mentions specific genes (e.g. FT, Hd3a, SFT, GmFT, FLC, CO, SOC1, LFY), specific proteins (florigen, FD, AP1), or specific mechanisms (FAC / florigen activation complex, vernalization pathway), the cited article MUST actually discuss those exact genes/proteins OR their orthologs/homologs in a biologically equivalent context. Citing an article merely because it covers a broad adjacent category — e.g. plant development, forest seedling growth, root traits, biotic stress — without naming the same gene/actor-level entities, is FORBIDDEN when the paragraph specifies those entities. If no candidate article meets this strict specificity, cite fewer — do not pad with off-topic matches.
+10. **Specificity rule (named-entity matching, strict)**: When the paragraph mentions specific genes (e.g. FT, Hd3a, SFT, GmFT, FLC, CO, SOC1, LFY), specific proteins (florigen, FD, AP1), or specific mechanisms (FAC / florigen activation complex, vernalization pathway), the cited article MUST actually discuss those exact genes/proteins OR their orthologs/homologs in a biologically equivalent context. **However**, for paragraphs that describe canonical regulatory networks or well-established mechanisms (such as FAC, FT-FD-AP1 axis, photoperiodic flowering, AP2/TOE1-mediated flowering time control), an article is also acceptable if it discusses the same broader pathway or regulatory network and names at least one key actor from that pathway (e.g. FT, FLC, AP2/TOE1, FD, AP1) or an ortholog/homolog. Citing an article merely because it covers a broad adjacent category — e.g. plant development, forest seedling growth, root traits, biotic stress — without naming the same gene/actor-level entities, is FORBIDDEN when the paragraph specifies those entities. If no candidate article meets this specificity, cite fewer — do not pad with off-topic matches.
 11. **No-padding rule**: Returning 0–2 precisely-matched citations is ALWAYS preferable to 5 forced matches. It is expected and acceptable that many candidate articles are unused. Do not invent relevance to fill out a number. If only 1 sentence in the paragraph has a matching candidate, cite just that one.
 12. **Reason-grounding rule (no fabricated justifications)**: The Chinese 'reason' for each cited article MUST be grounded in CONCRETE content from that article's title / abstract / conclusions — e.g., "该研究发现 HD3a ..." / "文中报道 FLC 同源基因..." / "文章以 X 物种比较 FT 与 Y 的功能". Generic filler phrases like "该文献涉及植物发育调控的保守机制" or "与本段背景相关" WITHOUT referencing the article's specific named genes / species / findings / experiments are FORBIDDEN. If you cannot ground the reason in specific article content, do not cite that article.
 13. **Marker-arithmetic consistency rule (MUST)**: The [n] numbers appearing in the 'annotated' paragraph MUST be a strict subset of the 'ref' values in the 'insertions' array. Cross-validate before returning — count your 'insertions' entries and their ref numbers; the [n] in 'annotated' may only use those exact numbers. If your insertions has ONE entry with ref=1, then 'annotated' may only contain [1] — never [4] or any other number. Out-of-range or inconsistent markers will cause the renderer to display mismatched detail cards.
