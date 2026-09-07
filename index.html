@@ -313,7 +313,7 @@ a.cite-marker {
   display: inline-block;
   color: #c0392b;
   font-weight: 800;
-  font-size: 13px;
+  font-size: 12px;
   background: #fdecea;
   border: 1.5px solid #e8a09a;
   border-radius: 4px;
@@ -321,8 +321,7 @@ a.cite-marker {
   margin: 0 1px;
   text-decoration: none;
   transition: background 0.15s;
-  vertical-align: super;
-  line-height: 1.2;
+  line-height: 1.4;
 }
 a.cite-marker:hover { background: #f5b7b1; }
 .ins-notes { margin-bottom: 14px; }
@@ -2601,7 +2600,8 @@ CRITICAL RULES for citation placement:
 3. **Methods and results that clearly belong to the author's own work may be left without citations**, but background and gap sentences should NOT be left bare if a relevant article exists.
 4. **Distribute citations across different sentences.** Do NOT stack all [1]…[15] at the end of one sentence. Each cited sentence should normally have 1-3 markers.
 5. Insert "[n]" markers at the END of those sentences (before the period), using the article numbers above.
-   **CRITICAL FORMAT**: markers MUST be wrapped in square brackets like "[1]", "[2]", "[3]". Do NOT output plain numbers like "1", "2", or "3,4". If two articles are cited at the same spot, output them as separate bracketed markers: "[3][4]". If the input paragraph already contains other old citation numbers without brackets, leave them unchanged, but YOUR new markers must always use "[n]".
+   **CRITICAL FORMAT**: markers MUST be wrapped in square brackets like "[1]", "[2]", "[3]". Do NOT output plain numbers like "1", "2", or "3,4". If two articles are cited at the same spot, output them as separate bracketed markers: "[3][4]".
+   **Author's existing citation numbers — DO NOT TOUCH**: If the input paragraph already contains the researcher's own citation numbers WITHOUT square brackets (e.g. "1", "2", "3,4", "5") — these are the AUTHOR'S own references from their manuscript, NOT yours to manage. Leave them EXACTLY as they appear in the original text: do NOT delete them, do NOT wrap them in [ ], do NOT renumber them, do NOT re-position them, do NOT "fix" them by adding brackets. Your new [n] markers are ADDITIONAL citations only and must always use the [n] format. The author's plain-number citations and your [n] markers will coexist in the same paragraph; that is expected and correct.
 6. Return the COMPLETE paragraph with citations inserted. Do not change any other words.
 7. Also return: for each article [n] that you actually inserted in the paragraph, write a brief reason IN CHINESE (1-2 sentences) explaining WHY this article supports the paragraph content. Skip articles that you did not cite.
 8. For each inserted article [n], also provide a concise Chinese translation of its English title in the field 'titleZh'. Make it natural and readable for Chinese researchers (not word-for-word literal).
@@ -2791,7 +2791,7 @@ function renderCiteResults(citeResult, articles) {
       const idx = parseInt(n) - 1;
       const art = articles[idx];
       const url = art ? 'https://www.maxapress.com/article/doi/' + art.doi : '#';
-      return `<a class="cite-marker" href="${url}" target="_blank" title="${art ? escHtml(art.title) : ''}">[${n}]</a>`;
+      return `<sup><a class="cite-marker" href="${url}" target="_blank" title="${art ? escHtml(art.title) : ''}">[${n}]</a></sup>`;
     });
 
     // Copy plain text (normalized annotated without HTML)
