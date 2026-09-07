@@ -2644,11 +2644,12 @@ Return ONLY valid JSON (no markdown), exactly this format:
       citeResult = null;
     }
 
-    // Safety net: if DeepSeek returns empty insertions (over-conservatism) but we
-    // still have candidate articles, programmatically insert the top 1-3 articles
-    // at the most relevant paragraphs. This guarantees the user sees results when
-    // the recall layer has found relevant literature.
-    if (citeResult && (!citeResult.insertions || !citeResult.insertions.length) && topArts.length > 0) {
+    // Safety net: if DeepSeek returns NO usable citations — empty insertions OR a
+    // completely unparseable response (citeResult === null) — but the recall layer
+    // still produced ranked candidate articles, programmatically insert the top 1-3
+    // articles at the most relevant paragraphs. This guarantees the user sees
+    // results whenever relevant literature exists, regardless of model verbosity.
+    if ((!citeResult || !citeResult.insertions || !citeResult.insertions.length) && topArts.length > 0) {
       const fb = buildFallbackCitations(topArts, para);
       if (fb) {
         // Translate the fallback articles' English titles via a lightweight
@@ -2672,7 +2673,7 @@ Return ONLY valid JSON (no markdown), exactly this format:
         } catch (e) {
           console.warn('[cite] Fallback title translation failed:', e.message);
         }
-        citeResult = { ...citeResult, annotated: fb.annotated, insertions: fb.insertions, _fallback: true };
+        citeResult = { ...(citeResult || {}), annotated: fb.annotated, insertions: fb.insertions, _fallback: true };
       }
     }
 
@@ -2785,21 +2786,43 @@ function renderArticleList(articles, query, totalCandidates) {
 
 // Fallback: DeepSeek occasionally returns plain numbers like "1" or "3,4" instead of
 // "[1]" / "[3][4]". This normalizes such markers so the renderer can highlight them.
-function normalizeCiteMarkers(text, insertions) {
+// originalPara (the user's untouched input) is optional. When supplied, a candidate
+// number is converted ONLY if it does NOT already sit at the same spot in the user's
+// original text — otherwise we would corrupt the author's own numbers (e.g. "2021."
+// or "Fig. 3.") that merely collide with an insertion ref.
+function normalizeCiteMarkers(text, insertions, originalPara) {
   if (!text || !insertions || !insertions.length) return text;
   const refSet = new Set(insertions.map(i => i.ref).filter(r => r > 0));
   if (!refSet.size) return text;
+
+  // True if the digits at digitStart in `full` mirror digits already present in the
+  // user's original paragraph (author's own citation number / year / figure label).
+  const looksLikeAuthorText = (full, digitStart, digitStr, dotAfter) => {
+    if (!originalPara) return false;
+    const win = full.slice(Math.max(0, digitStart - 60), digitStart);
+    if (win.length < 12) return false;
+    const oi = originalPara.indexOf(win);
+    if (oi === -1) return false;
+    const rest = originalPara.slice(oi + win.length).replace(/\s+/g, '');
+    const expected = digitStr.replace(/\s+/g, '') + (dotAfter ? '.' : '');
+    return rest.startsWith(expected);
+  };
+
   let t = text;
   // Case A: plain numbers right BEFORE a period (e.g. "regulation1.").
-  t = t.replace(/(\d{1,2}(?:[,\-–]\s*\d{1,2})*)(?=\.(?:\s|$))/g, (m, p1) => {
+  // (?<!\d) prevents matching the trailing digit of a longer number like "2021."
+  t = t.replace(/(?<!\d)(\d{1,2}(?:[,\-–]\s*\d{1,2})*)(?=\.(?:\s|$))/g, (m, p1, off) => {
     const nums = p1.split(/[,\-–]/).map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
     if (!nums.length || !nums.every(n => refSet.has(n))) return m;
+    if (looksLikeAuthorText(text, off, p1, true)) return m;
     return nums.map(n => `[${n}]`).join('');
   });
   // Case B: plain numbers right AFTER a period (current model drift: "regulation.1 Next").
-  t = t.replace(/(\.\s*)(\d{1,2}(?:[,\-–]\s*\d{1,2})*)(?=\s|$)/g, (m, sp, p1) => {
+  t = t.replace(/(\.\s*)(?<!\d)(\d{1,2}(?:[,\-–]\s*\d{1,2})*)(?=\s|$)/g, (m, sp, p1, off) => {
     const nums = p1.split(/[,\-–]/).map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
     if (!nums.length || !nums.every(n => refSet.has(n))) return m;
+    // `off` points at the leading period; the digits start after `sp`.
+    if (looksLikeAuthorText(text, off + sp.length, p1, false)) return m;
     return sp + nums.map(n => `[${n}]`).join('');
   });
   return t;
@@ -2879,7 +2902,14 @@ function buildFallbackCitations(articles, para) {
     const pClean = c.para.trim();
     const idxInPara = para.indexOf(pClean);
     if (idxInPara === -1) continue;
-    const insertPos = idxInPara + pClean.length;
+    // Place markers right BEFORE the paragraph's trailing period/question mark
+    // (mirroring the AI path and rebuildAnnotatedFromInsertions), not after it —
+    // otherwise fallback markers render as "trees.[1]" while AI markers render
+    // as "trees[1].", which looks inconsistent in the annotated paragraph.
+    let posInPara = pClean.length;
+    const tailMatch = pClean.match(/[.!?]["')]*$/);
+    if (tailMatch && tailMatch.index > 0) posInPara = tailMatch.index;
+    const insertPos = idxInPara + posInPara;
     if (!groups[insertPos]) groups[insertPos] = new Set();
     groups[insertPos].add(c.ref);
   }
@@ -2938,6 +2968,67 @@ function buildFallbackCitations(articles, para) {
   return { annotated, insertions };
 }
 
+// Re-insert [n] markers into the raw paragraph using insertion metadata.
+// Called when the model's annotated output is truncated or fails to include markers.
+// Each marker is placed at the END of the sentence that contains the 'after' anchor
+// (right before the period), not immediately after the anchor — otherwise markers
+// would land mid-sentence because 'after' is only the first ~10 words.
+function rebuildAnnotatedFromInsertions(para, insertions) {
+  if (!para || !insertions || !insertions.length) return para;
+  const inserts = insertions
+    .filter(ins => ins.ref && ins.after)
+    .map(ins => {
+      const after = String(ins.after).trim();
+      let anchorStart = para.indexOf(after);
+      let anchorEnd = anchorStart !== -1 ? anchorStart + after.length : -1;
+      // Fallback 1: model truncated the start of the sentence → anchor on the first 40 chars
+      if (anchorStart === -1 && after.length > 10) {
+        const short = after.slice(0, 40);
+        const p = para.indexOf(short);
+        if (p !== -1) { anchorStart = p; anchorEnd = p + short.length; }
+      }
+      // Fallback 2: model truncated the end → anchor on the last 20 chars
+      if (anchorStart === -1 && after.length > 20) {
+        const tail = after.slice(-20);
+        const p = para.indexOf(tail);
+        if (p !== -1) { anchorStart = p; anchorEnd = p + tail.length; }
+      }
+      if (anchorStart === -1) return null;
+      // Scan forward from the anchor for the end of the enclosing sentence so the
+      // marker lands before the period / line break. Skip common abbreviations
+      // (e.g., i.e., et al., Fig., vs.) and decimals that contain periods.
+      let pos = anchorEnd;
+      while (pos < para.length) {
+        const ch = para[pos];
+        if (ch === '\r' || ch === '\n') break;       // line/paragraph boundary
+        if (ch === '.' || ch === '?' || ch === '!') {
+          const next = para[pos + 1] || '';
+          const isTerminator = !next || /\s/.test(next) || /["')]/.test(next);
+          const ctx = para.slice(Math.max(0, pos - 12), pos + 1);
+          const isAbbrev = /(e\.g\.|i\.e\.|et al\.|etc\.|vs\.|cf\.|sp\.|spp\.|ca\.|Fig\.|Figs\.|No\.|Vol\.|pp\.)/i.test(ctx);
+          if (isTerminator && !isAbbrev) break;
+        }
+        pos++;
+      }
+      return { ref: ins.ref, pos };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.pos - a.pos);
+
+  // Markers that land on the same position are merged into ascending "[a][b]".
+  const groups = new Map();
+  for (const ins of inserts) {
+    if (!groups.has(ins.pos)) groups.set(ins.pos, []);
+    groups.get(ins.pos).push(ins.ref);
+  }
+  let annotated = para;
+  for (const [pos, refs] of [...groups.entries()].sort((a, b) => b[0] - a[0])) {
+    const markers = refs.sort((a, b) => a - b).map(r => `[${r}]`).join('');
+    annotated = annotated.slice(0, pos) + markers + annotated.slice(pos);
+  }
+  return annotated;
+}
+
 function renderCiteResults(citeResult, articles, rawPara) {
   const [y0, y1] = getYearRange();
   let html = '';
@@ -2959,14 +3050,23 @@ function renderCiteResults(citeResult, articles, rawPara) {
     const truncatedByLen    = rawLen > 200 && annLen < rawLen * 0.7;
     const truncatedByParas  = rawParas >= 2 && annParas < rawParas;
     if (truncatedByLen || truncatedByParas) {
-      console.warn('[cite] Annotated paragraph appears truncated. raw=' + rawLen + ' ann=' + annLen + ' rawParas=' + rawParas + ' annParas=' + annParas + '. Falling back to raw input.');
-      rawAnnotated = rawPara;
+      console.warn('[cite] Annotated paragraph appears truncated. raw=' + rawLen + ' ann=' + annLen + ' rawParas=' + rawParas + ' annParas=' + annParas + '. Rebuilding markers from insertions.');
+      rawAnnotated = rebuildAnnotatedFromInsertions(rawPara, citeResult.insertions);
     }
   }
+
+  // ── Step A0b: If the annotated text still lacks markers but we have insertion
+  //     metadata, rebuild the annotated paragraph so paragraph markers stay in
+  //     sync with the detail cards.
+  const hasAnnotatedMarkers = /\[\d+\]/.test(rawAnnotated || '');
+  if (!hasAnnotatedMarkers && citeResult && citeResult.insertions && citeResult.insertions.length) {
+    rawAnnotated = rebuildAnnotatedFromInsertions(rawPara || rawAnnotated, citeResult.insertions);
+  }
+
   // ── Step A: Scan the annotated paragraph for [n] markers ──
   let citedRefs = new Set();
   if (rawAnnotated) {
-    const tmpNorm = normalizeCiteMarkers(rawAnnotated, citeResult.insertions || []);
+    const tmpNorm = normalizeCiteMarkers(rawAnnotated, citeResult.insertions || [], rawPara);
     const markerMatches = tmpNorm.match(/\[(\d+)\]/g) || [];
     markerMatches.forEach(m => citedRefs.add(parseInt(m.slice(1, -1), 10)));
   }
@@ -2995,7 +3095,7 @@ function renderCiteResults(citeResult, articles, rawPara) {
   //    This guarantees the paragraph's [n] and the detail-card numbering are exactly consistent.
   let normalizedAnnotated = rawAnnotated;
   if (rawAnnotated) {
-    normalizedAnnotated = normalizeCiteMarkers(rawAnnotated, [...validRefs].map(r => ({ref: r})));
+    normalizedAnnotated = normalizeCiteMarkers(rawAnnotated, [...validRefs].map(r => ({ref: r})), rawPara);
     normalizedAnnotated = normalizedAnnotated.replace(/\[(\d+)\]/g, (m, n) => {
       const ref = parseInt(n, 10);
       return validRefs.has(ref) ? m : '';
