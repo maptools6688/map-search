@@ -2127,6 +2127,14 @@ function articleScore(title, abstract, query) {
   const t = (title || '').toLowerCase();
   const ab = (abstract || '').toLowerCase();
   const tokens = splitTokens(query);
+  // Entity tokens (genus/species names, gene symbols) are far stronger recall signals
+  // than generic method words ("stress", "activity", "analysis"). Without this boost a
+  // generic 4-word query lets unrelated papers outrank the exact-match ones.
+  const entityTokens = new Set(
+    (query || '').split(/[\s,，、]+/).filter(Boolean)
+      .filter(w => /^[A-Z]/.test(w) || /[A-Z]\d/.test(w) || /\d/.test(w))
+      .map(w => w.toLowerCase())
+  );
   let s = 0;
   if (t.includes(q)) s += 30;
   if (ab.includes(q)) s += 10;
@@ -2136,12 +2144,15 @@ function articleScore(title, abstract, query) {
   const fullEnMatched = enFull ? enFull.some(e => t.includes(e) || ab.includes(e)) : true;
 
   for (const tk of tokens) {
-    if (t.includes(tk)) s += 6;
-    if (ab.includes(tk)) s += 2;
+    // Entity tokens (Dendrobium, FT, AP2 …) weigh double — they are what the user
+    // actually studies; generic tokens keep the original weight.
+    const w = entityTokens.has(tk) ? 2 : 1;
+    if (t.includes(tk)) s += 6 * w;
+    if (ab.includes(tk)) s += 2 * w;
     const en = cnToEn(tk);
     if (en) for (const e of en) {
-      if (t.includes(e)) s += 6;
-      if (ab.includes(e)) s += 3;
+      if (t.includes(e)) s += 6 * w;
+      if (ab.includes(e)) s += 3 * w;
     }
     // Sub-token decomposition — only when full query's EN terms match the article.
     // Prevents generic sub-words (e.g. "胁迫"→"stress") from boosting unrelated articles.
@@ -2379,6 +2390,78 @@ async function doKeywordSearch() {
 // ============================================================
 // PARAGRAPH CITATION (AI)
 // ============================================================
+// DeepSeek sometimes returns journal ids that don't exist (observed: "trop" for
+// Tropical Plants, whose real id is "tp"). Silently filtering unknown ids means an
+// entire journal is never searched — potentially losing the best-matching article.
+// Resolve unknown ids against real ids / names before dropping them.
+function resolveJournalIds(ids) {
+  const pool = MAP_JOURNALS.filter(j => !j.external || j.issn);
+  const valid = new Set(pool.map(j => j.id));
+  const out = [];
+  for (const raw of [...new Set(ids)]) {
+    const id = String(raw || '').trim().toLowerCase();
+    if (!id) continue;
+    if (valid.has(id)) { out.push(id); continue; }
+    let best = null, bestScore = 0;
+    for (const j of pool) {
+      const idL = (j.id || '').toLowerCase();
+      const nameL = (j.name || '').toLowerCase();
+      const nameCN = j.nameCN || '';
+      let sc = 0;
+      if (idL.startsWith(id) || id.startsWith(idL)) sc = 90;   // "trop" vs "tp"? no → falls through
+      else if (nameL.startsWith(id)) sc = 88;                  // "trop" → "tropical plants"
+      else if (nameL.replace(/[^a-z]/g, '').startsWith(id.replace(/[^a-z]/g, ''))) sc = 80;
+      else if (nameL.includes(id) || id.includes(idL)) sc = 70;
+      else if (nameCN && (nameCN.includes(id) || id.includes(nameCN))) sc = 60;
+      else if (levenshtein(id, idL) <= 2) sc = 65;
+      if (sc > bestScore) { bestScore = sc; best = j.id; }
+    }
+    if (best && bestScore >= 60) out.push(best);
+  }
+  return [...new Set(out)];
+}
+
+// Coverage safety net: DeepSeek's journal pick can miss the journal that actually hosts
+// the best match — e.g. Tropical Plants for a Hainan orchid study, because that journal's
+// keyword list is crop-oriented (cassava/banana/mango) so the model never selects it.
+// Add a couple of journals chosen by literal keyword overlap with the paragraph so an
+// entire journal is never silently left out of the search.
+function coverageJournals(para, exclude, n = 2) {
+  const p = (para || '').toLowerCase();
+  const ex = new Set(exclude || []);
+  return MAP_JOURNALS
+    .filter(j => !j.external || j.issn)
+    .filter(j => !ex.has(j.id))
+    .map(j => {
+      let weighted = 0;
+      for (const k of (j.keywords || [])) {
+        const kl = String(k).toLowerCase();
+        if (kl.length < 3) continue;
+        if (p.includes(kl)) weighted += kl.length >= 5 ? 2 : 1;
+      }
+      return { id: j.id, weighted };
+    })
+    .filter(x => x.weighted > 0)
+    .sort((a, b) => b.weighted - a.weighted)
+    .slice(0, n)
+    .map(x => x.id);
+}
+
+function levenshtein(a, b) {
+  const m = a.length, n = b.length;
+  if (!m) return n;
+  if (!n) return m;
+  let prev = Array.from({ length: n + 1 }, (_, i) => i);
+  for (let i = 1; i <= m; i++) {
+    const cur = [i];
+    for (let j = 1; j <= n; j++) {
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    }
+    prev = cur;
+  }
+  return prev[n];
+}
+
 async function doCiteSearch() {
   const para = document.getElementById('paraInput').value.trim();
   if (!para) { alert('请先粘贴您的段落内容'); return; }
@@ -2394,21 +2477,29 @@ async function doCiteSearch() {
 
   try {
     // ── Build journal index for AI (id + name + nameCN + desc + keywords) ──
-    const journalIndex = MAP_JOURNALS.filter(j => !j.external || j.issn).map(j =>
+    const indexableJournals = MAP_JOURNALS.filter(j => !j.external || j.issn);
+    const journalIndex = indexableJournals.map(j =>
       `- ${j.id}: ${j.name}${j.nameCN?' ('+j.nameCN+')':''}\n  范围描述: ${j.desc || '无'}\n  关键词(已按段落相关性排序，命中词在前): ${rankKeywordsForPara(j, para)}`
     ).join('\n');
+    // Explicit id whitelist in the prompt — DeepSeek otherwise invents ids
+    // (observed: "trop" for Tropical Plants, whose real id is "tp").
+    const validJournalIds = indexableJournals.map(j => j.id).join(', ');
 
     // Step 1: AI selects relevant journals AND extracts search queries
     const extractPrompt = `You are a research assistant helping map a research paragraph to the most relevant MAP journals. MAP publishes these academic journals. For each journal you are given BOTH a research scope description AND a keyword list — the keywords are already sorted so the ones matching this paragraph appear FIRST, so pay attention to them.
 
 ${journalIndex}
 
+VALID JOURNAL IDS (use ONLY ids from this list — never invent one): ${validJournalIds}
+
 Given the paragraph below, do THREE things in order:
 1. FIRST, determine the PRIMARY research field / subject of the paragraph (e.g., forestry & tree salt tolerance, plant-microbe interactions, food materials, cancer care). State it briefly in "field".
 2. Select 5-8 MAP journals that are MOST topically relevant. Read each journal's 范围描述 AND 关键词 together — a journal may cover the topic even if the description alone doesn't spell it out. Consider: what is the core research question? which journals actually publish this type of research?
    CROSS-DISCIPLINARY RULE: Many paragraphs span disciplines (e.g., microbial treatment of tree salt tolerance = forestry + microbiology). Identify the PRIMARY subject (what is being studied — e.g., trees / forest / woody plants) and ALWAYS include journals from that primary domain. Do NOT let secondary methods (microbial inoculation, molecular tools) overshadow the primary subject.
-3. Extract 3-6 concise English search queries (2-4 words each) to find articles within the selected journals.
+3. Extract 3-6 concise English search queries (2-3 words each — NEVER 4+ words) to find articles within the selected journals.
    **CRITICAL**: Your queries MUST include the specific genes, proteins, protein complexes, or regulators explicitly named in the paragraph (e.g. FT, Hd3a, SFT, GmFT, PEBP, FAC, AP1, AP2, TOE1, FD, FLC). Also include one broader query covering the overall topic (e.g. "flowering regulation", "floral transition"). These named entities are the strongest anchors for finding relevant articles — generic topic queries alone will miss them.
+   **SPECIES/GENUS RULE**: If the paragraph studies a specific organism, at least one query MUST be its exact species or genus name (e.g. "Dendrobium sinense", "Dendrobium", "Pleione"). Exact organism names are the single strongest recall signal.
+   **WHY 2-3 WORDS MATTERS**: Long queries like "orchid pseudobulb drought stress" match unrelated drought/stress papers (rice, chrysanthemum, lily) that merely share the generic words, and those crowd out the genuinely relevant articles. Keep each query to a tight 2-3 word concept instead.
    **SYNONYM EXPANSION (crucial)**: For each named gene or protein, ALSO add at least one query using its well-known synonyms, aliases, or family/subfamily names — because article titles and abstracts often use a DIFFERENT name for the same entity, and literal string matching will miss them. Examples: FT → "florigen" or "PEBP family"; TOE1/AP2 → "AP2 transcription factor" or "miR172 target"; SOC1 → "MADS-box flowering"; FT-FD complex → "florigen activation complex". Include the gene symbol form AND its descriptive/protein-name form. Do not exceed 6 queries total.
 
 Paragraph:
@@ -2439,9 +2530,16 @@ Return ONLY valid JSON (no markdown, no extra text):
       // fallback: use raw paragraph as query, search all
     }
     if (!queries.length) queries = [para.slice(0, 80)];
-    // Validate that selected journals exist in MAP_JOURNALS
-    const validIds = new Set(MAP_JOURNALS.map(j => j.id));
-    selectedJournals = [...new Set(selectedJournals)].filter(id => validIds.has(id));
+    // Validate that selected journals exist in MAP_JOURNALS — resolving hallucinated
+    // ids instead of dropping them (dropping silently skips an entire journal).
+    selectedJournals = resolveJournalIds(selectedJournals);
+    // ── Coverage safety net ──
+    // AI 选刊可能漏掉真正命中最好的那本刊（实测：海南石斛研究落在 Tropical Plants，
+    // 但其关键词偏热带作物，AI 从不选它）。按段落关键词覆盖率补 1-2 本，避免整刊漏检。
+    if (currentCiteJournal === 'all') {
+      selectedJournals = selectedJournals.concat(coverageJournals(para, selectedJournals, 2));
+    }
+
     // ── User-locked journal (段落检索"限定期刊") ──
     // 用户在段落面板选了具体期刊时，覆盖 AI 的选刊结果，让推荐只来自该刊。
     if (currentCiteJournal !== 'all') {
@@ -2499,8 +2597,11 @@ Return ONLY valid JSON (no markdown, no extra text):
     }
 
     // Fallback: if too few articles from AI-selected journals (<5), do keyword-based supplement
-    // But score-check every supplement article — don't add irrelevant ones
-    if (candidateArticles.length < 5 && queries.length > 0) {
+    // But score-check every supplement article — don't add irrelevant ones.
+    // JOURNAL-LOCK RULE: findArticles() searches across ALL journals, so it must NOT run
+    // when the user locked a specific journal — otherwise foreign-journal articles leak
+    // into a result the user expects to come from the locked journal only.
+    if (candidateArticles.length < 5 && queries.length > 0 && currentCiteJournal === 'all') {
       for (const q of queries.slice(0, 3)) {
         const arts = await findArticles(q, 12);
         for (const a of arts) {
@@ -2512,8 +2613,9 @@ Return ONLY valid JSON (no markdown, no extra text):
       }
     }
 
-    // Final fallback: if still zero, search ALL journals with lower threshold
-    if (candidateArticles.length === 0) {
+    // Final fallback: if still zero, search ALL journals with lower threshold.
+    // Same journal-lock rule as above: never widen the search beyond the locked journal.
+    if (candidateArticles.length === 0 && currentCiteJournal === 'all') {
       for (const q of queries.slice(0, 3)) {
         const arts = await findArticles(q, 10);
         for (const a of arts) {
